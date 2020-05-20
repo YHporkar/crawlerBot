@@ -113,7 +113,7 @@ def get_matched_posts(channel, words, end_date):
 
             # skip album additional urls
             if elements['lai'] > 0:
-                start -= start - elements['lai'] + 1
+                start -= start - elements['lai'] + 2
             else:
                 start -= 1
             date = elements['date']
@@ -145,7 +145,7 @@ def automatic_save_posts(channels):
 
                 # skip album additional urls
                 if elements['lai'] > 0:
-                    start += start - elements['lai'] + 1
+                    start += start - elements['lai']
                 else:
                     start += 1
             else:
