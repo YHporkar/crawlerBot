@@ -120,6 +120,7 @@ def get_matched_posts(channel, words, end_date):
         else:
             start -= 1
         soup = get_soup(root_url + str(start))
+        time.sleep(1)
     return posts
 
 
