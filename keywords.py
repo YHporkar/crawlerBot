@@ -4,9 +4,9 @@ WORDS, ADD_WORDS, REMOVE_WORDS = range(1, 4)
 
 
 def keywords(update, context):
-    keyboard = [[InlineKeyboardButton("add", callback_data='1'),
-                 InlineKeyboardButton("remove", callback_data='2')],
-                [InlineKeyboardButton("home", callback_data='0')]]
+    keyboard = [[InlineKeyboardButton("افزودن", callback_data='1'),
+                 InlineKeyboardButton("حذف", callback_data='2')],
+                [InlineKeyboardButton("خانه", callback_data='0')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     keywords = ""
     i = 1
@@ -14,12 +14,13 @@ def keywords(update, context):
         keywords += "{0}. {1} \n".format(i, keyword)
         i += 1
     update.message.reply_text(
-        "Your keywords: \n\n" + keywords, reply_markup=reply_markup)
+        "واژه های شما: \n\n" + keywords, reply_markup=reply_markup)
     return WORDS
 
 
 def add_keywords_alert(update, context):
-    update.callback_query.message.reply_text('send keywords and then /done: ')
+    update.callback_query.message.reply_text(
+        'واژه های خود را بفرستید سپس /done را بفرستید: ')
     return ADD_WORDS
 
 
@@ -29,7 +30,8 @@ def add_keywords(update, context):
 
 
 def remove_keywords_alert(update, context):
-    update.callback_query.message.reply_text('send the numbers then /done: ')
+    update.callback_query.message.reply_text(
+        'شماره واژه هایی که قصد حذف شان را دارید بفرستید سپس /done را بفرستید: ')
     return REMOVE_WORDS
 
 
@@ -39,5 +41,9 @@ def remove_keywords(update, context):
     try:
         del context.user_data['keywords'][index - 1]
     except ValueError:
-        update.message.reply_text('doesnt exist')
+        update.message.reply_text('این واژه وجود ندارد')
     return REMOVE_WORDS
+
+
+def word_callback(update, context):
+    update.message.reply_text('یکی از گزینه های موجود را انتخاب کنید')

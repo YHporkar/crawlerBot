@@ -4,6 +4,8 @@ import re
 import datetime
 import time
 
+# from models import Post
+
 
 def get_soup(url):
     html = requests.get(url + '?embed=1')
@@ -73,8 +75,21 @@ def get_post_elements(soup):
 # print(get_caption(get_soup('https://t.me/farsna/192508')))
 
 
+def check_match(caption, words):
+    raw_caption = re.sub(r'[!@#()_=+?\.,،»«:\']+', '', caption)
+    for word in words:
+        if word in raw_caption:
+            return True
+
+
 def get_matched_posts(channel, words, end_date):
     posts = []
+
+    # database_posts = Post.get_all()
+    # for post in database_posts:
+    #     if check_match(post.caption):
+    #         posts.append(post)
+
     # url-e.g: https://t.me/varzesh3/107254
     channel_username = channel.get('username')
     start = channel.get('start')
@@ -86,32 +101,62 @@ def get_matched_posts(channel, words, end_date):
     date = get_date(soup)
 
     while date >= end_date:
-        print(is_there_post(soup))
+        print(root_url + str(start))
         if is_there_post(soup):
             elements = get_post_elements(soup)
             print(elements)
-            if not elements['date']:
-                start -= 1
-                date = datetime.date(datetime.MAXYEAR, 1, 1)
-                continue
 
-            raw_caption = re.sub(
-                r'[!@#()_=+?\.,،»«:\']+', '', elements['caption'])
-            for word in words:
-                if word in raw_caption:
-                    posts.append({'url': root_url + str(start),
-                                  'caption': elements['caption'], 'channel_name': channel.get('channel_name')})
-                    print('added')
-                    break
+            if check_match(elements['caption'], words):
+                posts.append({'url': root_url + str(start),
+                              'caption': elements['caption'], 'channel_name': channel.get('channel_name')})
+                print('added')
+
             # skip album additional urls
             if elements['lai'] > 0:
                 start -= start - elements['lai'] + 1
             else:
                 start -= 1
             date = elements['date']
-            print(root_url + str(start))
-            soup = get_soup(root_url + str(start))
         else:
             start -= 1
-            soup = get_soup(root_url + str(start))
+        soup = get_soup(root_url + str(start))
     return posts
+
+
+def automatic_save_posts(channels):
+    posts = []
+    for channel in channels:
+        channel_username = channel.get('username')
+        start = channel.get('start') + 1
+        no_post = 0
+
+        root_url = 'https://t.me/' + channel_username + '/'
+
+        soup = get_soup(root_url + str(start))
+
+        while no_post < 2:
+            print(root_url + str(start))
+            if is_there_post(soup):
+                no_post = 0
+                elements = get_post_elements(soup)
+                print(elements)
+                posts.append({'url': root_url + str(start),
+                              'caption': elements['caption'], 'channel_name': channel.get('channel_name')})
+
+                # skip album additional urls
+                if elements['lai'] > 0:
+                    start += start - elements['lai'] + 1
+                else:
+                    start += 1
+            else:
+                no_post += 1
+                start += 1
+            soup = get_soup(root_url + str(start))
+
+    # store in database
+    # for post in posts:
+    #     Post.add(caption=post['caption'],
+    #              channel_name=post['channel_name'], link=post['url'])
+
+
+# automatic_save_posts(channels)

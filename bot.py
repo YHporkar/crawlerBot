@@ -23,7 +23,7 @@ start_markup = ReplyKeyboardMarkup(start_keyboard, resize_keyboard=True)
 
 
 def start(update, context):
-    update.message.reply_text('choose: ', reply_markup=start_markup)
+    update.message.reply_text('انتخاب کنید: ', reply_markup=start_markup)
     context.user_data['keywords'] = []
     context.user_data['channels'] = []
 
@@ -31,17 +31,14 @@ def start(update, context):
 
 
 def end_features(update, context):
-    try:
-        update.message.reply_text('choose: ', reply_markup=start_markup)
-    except AttributeError:
-        update.callback_query.message.reply_text(
-            'choose: ', reply_markup=start_markup)
+    update.callback_query.message.reply_text(
+        'انتخاب کنید: ', reply_markup=start_markup)
     return SELECTING_ACTION
 
 
 def home(update, context):
     update.callback_query.message.reply_text(
-        'choose: ', reply_markup=start_markup)
+        'انتخاب کنید: ', reply_markup=start_markup)
     context.user_data['all_posts'] = []
     return SELECTING_ACTION
 
@@ -60,6 +57,7 @@ def bot():
         states={
             WORDS: [CallbackQueryHandler(add_keywords_alert, pattern=r'1'),
                     CallbackQueryHandler(remove_keywords_alert, pattern=r'2'),
+                    MessageHandler(Filters.all, word_callback)
                     ],
             ADD_WORDS: [MessageHandler(Filters.regex(r'[ شسیبلاتنمکگضصثقفغعهخحجچپظطزرذدئو]+'), add_keywords),
                         CommandHandler('done', keywords)],
@@ -76,7 +74,9 @@ def bot():
         entry_points=[MessageHandler(Filters.regex('کانال ها'), channels)],
         states={
             CHANNELS: [CallbackQueryHandler(add_channels_alert, pattern=r'1'),
-                       CallbackQueryHandler(remove_channels_alert, pattern=r'2')],
+                       CallbackQueryHandler(
+                           remove_channels_alert, pattern=r'2'),
+                       MessageHandler(Filters.all, channel_callback)],
             ADD_CHANNELS: [MessageHandler(Filters.forwarded, add_channel),
                            CommandHandler('done', channels)],
             REMOVE_CHANNELS: [MessageHandler(Filters.regex(r'[0-9]+'), remove_channel),

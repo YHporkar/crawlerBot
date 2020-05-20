@@ -5,9 +5,9 @@ CHANNELS, ADD_CHANNELS, REMOVE_CHANNELS = range(4, 7)
 
 
 def channels(update, context):
-    keyboard = [[InlineKeyboardButton("add", callback_data='1'),
-                 InlineKeyboardButton("remove", callback_data='2'), ],
-                [InlineKeyboardButton("home", callback_data='0')]]
+    keyboard = [[InlineKeyboardButton("افزودن", callback_data='1'),
+                 InlineKeyboardButton("حذف", callback_data='2'), ],
+                [InlineKeyboardButton("خانه", callback_data='0')]]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     channels = ""
@@ -16,12 +16,13 @@ def channels(update, context):
         channels += "{0}. {1} \n".format(i, '@'+channel['username'])
         i += 1
     update.message.reply_text(
-        "Your channels: \n\n" + channels, reply_markup=reply_markup)
+        "کانال های شما: \n\n" + channels, reply_markup=reply_markup)
     return CHANNELS
 
 
 def add_channels_alert(update, context):
-    update.callback_query.message.reply_text('forward posts and then /done: ')
+    update.callback_query.message.reply_text(
+        'پست آخر کانال را فوروارد کنید سپس /done را ارسال کنید')
     return ADD_CHANNELS
 
 
@@ -41,7 +42,8 @@ def add_channel(update, context):
 
 
 def remove_channels_alert(update, context):
-    update.callback_query.message.reply_text('send the numbers then /done: ')
+    update.callback_query.message.reply_text(
+        'شماره کانال هایی که قصد حذف شان را دارید بفرستید سپس /done را بفرستید: ')
     return REMOVE_CHANNELS
 
 
@@ -50,5 +52,9 @@ def remove_channel(update, context):
     try:
         del context.user_data['channels'][index - 1]
     except ValueError:
-        update.message.reply_text('doesnt exist')
+        update.message.reply_text('این کانال وجود ندارد')
     return REMOVE_CHANNELS
+
+
+def channel_callback(update, context):
+    update.message.reply_text('یکی از گزینه های موجود را انتخاب کنید')
