@@ -1,9 +1,14 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
+from crawler import get_channel_name
+
+from login import login_required
+
 
 CHANNELS, ADD_CHANNELS, REMOVE_CHANNELS = range(4, 7)
 
 
+@login_required
 def channels(update, context):
     keyboard = [[InlineKeyboardButton("افزودن", callback_data='1'),
                  InlineKeyboardButton("حذف", callback_data='2'), ],
@@ -16,45 +21,56 @@ def channels(update, context):
         channels += "{0}. {1} \n".format(i, '@'+channel['username'])
         i += 1
     update.message.reply_text(
-        "کانال های شما: \n\n" + channels, reply_markup=reply_markup)
+        "کانال های شما: \n" + channels, reply_markup=reply_markup)
     return CHANNELS
 
 
 def add_channels_alert(update, context):
     update.callback_query.message.reply_text(
-        'پست آخر کانال را فوروارد کنید سپس /done را ارسال کنید')
+        'آیدی کانال ها را نوشته و بفرستید، سپس /done را ارسال کنید')
     return ADD_CHANNELS
 
 
 def add_channel(update, context):
-    message = update.message
-    channel_username = message.forward_from_chat.username
-    start = message.forward_from_message_id
-    channel_name = message.forward_from_chat.title
-    channel_list = []
+    channel_sent_list = update.message.text.split('\n')
+    channel_store_list = []
     for channel in context.user_data['channels']:
-        channel_list.append(channel.get('username'))
-    if channel_username not in channel_list:
-        context.user_data['channels'].append(
-            {'username': channel_username, 'channel_name': channel_name, 'start': start})
+        channel_store_list.append(channel.get('username'))
+    for username in channel_sent_list:
+        if username not in channel_store_list:
+            channel_name = get_channel_name(username.replace('@', ''))
+            if channel_name:
+                context.user_data['channels'].append(
+                    {'username': username.replace('@', ''), 'channel_name': channel_name.get_text()})
+            else:
+                update.message.reply_text(
+                    'کانال {} وجود ندارد'.format(username))
 
     return ADD_CHANNELS
 
 
 def remove_channels_alert(update, context):
+    context.user_data['remove_channels'] = []
     update.callback_query.message.reply_text(
-        'شماره کانال هایی که قصد حذف شان را دارید بفرستید سپس /done را بفرستید: ')
+        'شماره کانال هایی که قصد حذف شان را دارید بفرستید سپس /done را ارسال کنید: ')
     return REMOVE_CHANNELS
 
 
-def remove_channel(update, context):
+def check_remove_channels(update, context):
     index = int(update.message.text)
     try:
-        del context.user_data['channels'][index - 1]
-    except ValueError:
-        update.message.reply_text('این کانال وجود ندارد')
-    return REMOVE_CHANNELS
+        context.user_data['channels'][index - 1]
+        context.user_data['remove_channels'].append(index - 1)
+    except IndexError:
+        update.message.reply_text('کانال {} وجود ندارد'.format(index))
+    return REMOVE_WORDS
 
 
-def channel_callback(update, context):
-    update.message.reply_text('یکی از گزینه های موجود را انتخاب کنید')
+def remove_channels(update, context):
+    for index in context.user_data['remove_channels']:
+        context.user_data['channels'][index] = '$'
+
+    context.user_data['channels'] = list(
+        filter(lambda a: a != '$', context.user_data['channels']))
+
+    return channels(update, context)

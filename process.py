@@ -7,10 +7,12 @@ from bot import SELECTING_ACTION, start_markup
 
 from persiantools.jdatetime import JalaliDate
 
+from login import login_required
 
 SET_DATE, GET_POSTS = range(7, 9)
 
 
+@login_required
 def start_process(update, context):
     if context.user_data['keywords'] == []:
         update.message.reply_text(
@@ -41,17 +43,27 @@ def start_process(update, context):
 def manually_date_alert(update, context):
     update.callback_query.edit_message_text(
         " تاریخ را با فرمت زیر ارسال کنید \n\n"
-        "روز-ماه-سال")
+        "روز-ماه-سال\n"
+        "مثال: 05-02-1399")
     return SET_DATE
 
 
 def manually_date(update, context):
     persian_date = list(map(int, update.message.text.split('-')))
-    date = JalaliDate(persian_date[0], persian_date[1],
-                      persian_date[2]).to_gregorian()
+    try:
+        date = JalaliDate(persian_date[0], persian_date[1],
+                          persian_date[2]).to_gregorian()
+    except ValueError:
+        update.message.reply_text('تاریخ را درست وارد کنید')
+        return SET_DATE
     update.message.reply_text('لطفا صبر کنید...')
 
     return get_posts(update, context, date)
+
+
+def wrong_date(update, context):
+    update.message.reply_text('تاریخ را درست وارد کنید')
+    return SET_DATE
 
 
 def choosen_date(update, context):

@@ -1,9 +1,13 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from models import Admin
 
+from login import login_required
+
+
 ADMINS, ADD_ADMINS, REMOVE_ADMINS = range(1, 4)
 
 
+@login_required
 def admins(update, context):
     keyboard = [[InlineKeyboardButton("افزودن", callback_data='1'),
                  InlineKeyboardButton("حذف", callback_data='2')],
@@ -32,6 +36,8 @@ def add_admins(update, context):
     for admin in admin_sent_list:
         if not admin in context.user_data['admins']:
             Admin(username=admin.replace('@', '')).add()
+
+    print(Admin.get_all())
 
     return ADD_ADMINS
 

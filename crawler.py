@@ -4,7 +4,13 @@ import re
 import datetime
 import time
 
-# from models import Post
+
+def float_to_int(num):
+    if 'K' in num:
+        num = int(float(num.replace('K', ''))*1000)
+    elif 'M' in num:
+        num = int(float(num.replace('M', ''))*1000000)
+    return num
 
 
 def get_soup(url):
@@ -79,11 +85,53 @@ def get_post_elements(soup):
 # print(get_caption(get_soup('https://t.me/farsna/192508')))
 
 
+def arrange_words(words):
+    arranged_words = {'and': [], 'or': []}
+    for word in words:
+        if word.__contains__(','):
+            arranged_words['and'].extend(word.split(','))
+        # elif word.__contains__('-'):
+        #     arranged_words['not'].append(word.replace('-', ''))
+        else:
+            arranged_words['or'].append(word)
+    return arranged_words
+
+
 def check_match(caption, words):
     raw_caption = re.sub(r'[!@#()_=+?\.,،»«:\']+', '', caption)
-    for word in words:
-        if word in raw_caption:
-            return True
+    or_matched, and_matched = False, False
+    if words['or'] != []:
+        for or_word in words['or']:
+            if or_word in raw_caption:
+                or_matched = True
+            else:
+                or_matched = False
+
+    if words['and'] != []:
+        for and_word in words['and']:
+            if and_word in raw_caption:
+                print('is' + and_word)
+                and_matched = True
+            else:
+                and_matched = False
+                break
+
+    # if words['not'] != []:
+    #     for not_word in words['not']:
+    #         if not not_word in raw_caption:
+    #             not_matched = True
+    #         else:
+    #             not_matched = False
+    # print(or_matched, and_matched)
+    if or_matched or and_matched:
+        return True
+    return False
+
+
+# url = 'https://t.me/farsna/192871'
+# caption = get_post_elements(get_soup(url))['caption']
+# print(caption)
+# print(check_match(caption, arrange_words(['فلسطین,قدس'])))
 
 
 def get_last_post_url(channel_username):
@@ -114,9 +162,9 @@ def get_matched_posts(channel, words, end_date):
             elements = get_post_elements(soup)
             print(elements)
 
-            if check_match(elements['caption'], words):
+            if check_match(elements['caption'], arrange_words(words)):
                 posts.append({'url': root_url + str(start),
-                              'caption': elements['caption'], 'channel_name': channel.get('channel_name'), 'views': elements['views']})
+                              'caption': elements['caption'], 'channel_name': channel.get('channel_name'), 'views': float_to_int(elements['views'])})
                 print('added')
 
             # skip album additional urls

@@ -1,8 +1,12 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
+from login import login_required
+
+
 WORDS, ADD_WORDS, REMOVE_WORDS = range(1, 4)
 
 
+@login_required
 def keywords(update, context):
     keyboard = [[InlineKeyboardButton("افزودن", callback_data='1'),
                  InlineKeyboardButton("حذف", callback_data='2')],
@@ -20,7 +24,9 @@ def keywords(update, context):
 
 def add_keywords_alert(update, context):
     update.callback_query.message.reply_text(
-        'واژه های خود را بفرستید سپس /done را ارسال کنید: ')
+        "واژه های خود را بفرستید سپس /done را ارسال کنید: \n"
+        "برای اینکه وجود چند واژه باهم در یک کپشن را تعیین کنید بین هر واژه از علامت ',' استفاده کنید\n\n"
+        "مثال: واژه1,واژه2")
     return ADD_WORDS
 
 
