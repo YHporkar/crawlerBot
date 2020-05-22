@@ -58,6 +58,10 @@ def get_caption(soup):
     return caption
 
 
+def get_views(soup):
+    return soup.find('span', {'class': 'tgme_widget_message_views'}).get_text()
+
+
 def get_date(soup):
     mydatetime = soup.find('time', {'class': 'datetime'}).get('datetime')
     return datetime.datetime.strptime(mydatetime[0:10], '%Y-%m-%d').date()
@@ -66,7 +70,7 @@ def get_date(soup):
 def get_post_elements(soup):
     elements = {}
     elements.update({'date': get_date(soup), 'caption': get_caption(
-        soup), 'lai': get_album_last_index(soup)})
+        soup), 'lai': get_album_last_index(soup), 'views': get_views(soup)})
 
     return elements
 
@@ -82,19 +86,23 @@ def check_match(caption, words):
             return True
 
 
+def get_last_post_url(channel_username):
+    channel_soup = get_soup('https://t.me/s/' + channel_username + '/')
+    return int(re.search(r'\/\d+', channel_soup.find_all('div', {'class': 'tgme_widget_message force_userpic js-widget_message'})[-1].get('data-post')).group(0).replace('/', ''))
+
+
+def get_channel_name(channel_username):
+    channel_soup = get_soup('https://t.me/s/' + channel_username + '/')
+    return channel_soup.find('div', {'class': 'tgme_header_title'})
+
+
 def get_matched_posts(channel, words, end_date):
     posts = []
 
-    # database_posts = Post.get_all()
-    # for post in database_posts:
-    #     if check_match(post.caption):
-    #         posts.append(post)
-
     # url-e.g: https://t.me/varzesh3/107254
-    channel_username = channel.get('username')
-    start = channel.get('start')
 
-    root_url = 'https://t.me/' + channel_username + '/'
+    root_url = 'https://t.me/' + channel.get('username') + '/'
+    start = channel.get('start')
 
     soup = get_soup(root_url + str(start))
 
@@ -108,7 +116,7 @@ def get_matched_posts(channel, words, end_date):
 
             if check_match(elements['caption'], words):
                 posts.append({'url': root_url + str(start),
-                              'caption': elements['caption'], 'channel_name': channel.get('channel_name')})
+                              'caption': elements['caption'], 'channel_name': channel.get('channel_name'), 'views': elements['views']})
                 print('added')
 
             # skip album additional urls
@@ -121,42 +129,3 @@ def get_matched_posts(channel, words, end_date):
             start -= 1
         soup = get_soup(root_url + str(start))
     return posts
-
-
-def automatic_save_posts(channels):
-    posts = []
-    for channel in channels:
-        channel_username = channel.get('username')
-        start = channel.get('start') + 1
-        no_post = 0
-
-        root_url = 'https://t.me/' + channel_username + '/'
-
-        soup = get_soup(root_url + str(start))
-
-        while no_post < 2:
-            print(root_url + str(start))
-            if is_there_post(soup):
-                no_post = 0
-                elements = get_post_elements(soup)
-                print(elements)
-                posts.append({'url': root_url + str(start),
-                              'caption': elements['caption'], 'channel_name': channel.get('channel_name')})
-
-                # skip album additional urls
-                if elements['lai'] > 0:
-                    start += start - elements['lai']
-                else:
-                    start += 1
-            else:
-                no_post += 1
-                start += 1
-            soup = get_soup(root_url + str(start))
-
-    # store in database
-    # for post in posts:
-    #     Post.add(caption=post['caption'],
-    #              channel_name=post['channel_name'], link=post['url'])
-
-
-# automatic_save_posts(channels)

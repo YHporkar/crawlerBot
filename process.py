@@ -1,7 +1,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 import math
 from datetime import datetime, timedelta
-from crawler import get_matched_posts
+from crawler import get_matched_posts, get_last_post_url
 
 from bot import SELECTING_ACTION, start_markup
 
@@ -70,7 +70,11 @@ def choosen_date(update, context):
 
 def get_posts(update, context, date):
     context.user_data['all_posts'] = []
+
     for channel in context.user_data['channels']:
+
+        channel.update({'start': get_last_post_url(channel.get('username'))})
+
         for post in get_matched_posts(channel, context.user_data['keywords'], date):
             context.user_data['all_posts'].append(post)
     context.user_data['posts_count'] = len(context.user_data['all_posts'])
@@ -109,7 +113,8 @@ def next_posts(update, context):
                                   "صفحه {1} از {2} \n\n"
                                   "شماره های {3} تا {4}".format(
                                       context.user_data['posts_count'], current_page, pages, (current_page-1)*5 + 1, context.user_data['posts_count']))
-        update.message.reply_text('انتخاب کنید: ', reply_markup=start_markup)
+        update.message.reply_text(
+            'لطفا انتخاب کنید: \n برای دسترسی به بخش مدیریت /admin را ارسال کنید', reply_markup=start_markup)
         return SELECTING_ACTION
     else:
         for post in context.user_data['all_posts'][0:5]:
@@ -126,6 +131,7 @@ def next_posts(update, context):
 def prettify(post):
     prettier = "نام کانال: {0} \n\n"\
         "[مشاهده پست در کانال]({1}) \n\n"\
-        "کپشن: \n {2} \n\n".format(
-            post['channel_name'], post['url'], post['caption'])
+        "تعداد ویو: {2} \n\n"\
+        "کپشن: \n {3} \n\n".format(
+            post['channel_name'], post['url'], post['views'], post['caption'])
     return prettier

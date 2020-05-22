@@ -6,9 +6,12 @@ from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, Conv
 
 from config import token
 
+from models import Admin, Base, engine
+
 from process import *
 from keywords import *
 from channels import *
+from admins import *
 
 
 logging.basicConfig(
@@ -16,31 +19,41 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-SELECTING_ACTION = 0
+SELECTING_ACTION, NOTREGISTERED = 0, 9
 
-start_keyboard = [['واژه ها', 'کانال ها'], ['شروع پردازش']]
+start_keyboard = [['واژه ها', 'کانال ها'], ['شروع جستجو']]
 start_markup = ReplyKeyboardMarkup(start_keyboard, resize_keyboard=True)
 
 
 def start(update, context):
-    update.message.reply_text('انتخاب کنید: ', reply_markup=start_markup)
-    context.user_data['keywords'] = []
-    context.user_data['channels'] = []
+    print('user: ' + update.message.from_user.username)
+    admin = Admin.get_by_username(update.message.from_user.username)
+    if admin:
+        update.message.reply_text(
+            'لطفا انتخاب کنید: \n برای دسترسی به بخش مدیریت /admin را ارسال کنید', reply_markup=start_markup)
+        context.user_data['keywords'] = []
+        context.user_data['channels'] = []
 
-    return SELECTING_ACTION
+        return SELECTING_ACTION
+    else:
+        return NOTREGISTERED
 
 
 def end_features(update, context):
     update.callback_query.message.reply_text(
-        'انتخاب کنید: ', reply_markup=start_markup)
+        'لطفا انتخاب کنید: \n برای دسترسی به بخش مدیریت /admin را ارسال کنید', reply_markup=start_markup)
     return SELECTING_ACTION
 
 
 def home(update, context):
     update.callback_query.message.reply_text(
-        'انتخاب کنید: ', reply_markup=start_markup)
+        'لطفا انتخاب کنید: \n برای دسترسی به بخش مدیریت /admin را ارسال کنید', reply_markup=start_markup)
     context.user_data['all_posts'] = []
     return SELECTING_ACTION
+
+
+def access_denied(update, context):
+    update.message.reply_text('دسترسی مقدور نیست')
 
 
 def error(update, context, error):
@@ -56,13 +69,11 @@ def bot():
 
         states={
             WORDS: [CallbackQueryHandler(add_keywords_alert, pattern=r'1'),
-                    CallbackQueryHandler(remove_keywords_alert, pattern=r'2'),
-                    MessageHandler(Filters.all, word_callback)
-                    ],
+                    CallbackQueryHandler(remove_keywords_alert, pattern=r'2')],
             ADD_WORDS: [MessageHandler(Filters.regex(r'[ شسیبلاتنمکگضصثقفغعهخحجچپظطزرذدئو]+'), add_keywords),
                         CommandHandler('done', keywords)],
-            REMOVE_WORDS: [MessageHandler(Filters.regex(r'[0-9]+'), remove_keywords),
-                           CommandHandler('done', keywords)]
+            REMOVE_WORDS: [MessageHandler(Filters.regex(r'[0-9]+'), check_remove_keywords),
+                           CommandHandler('done', remove_keywords)]
         },
         fallbacks=[CallbackQueryHandler(end_features, pattern=r'0')],
         map_to_parent={
@@ -74,13 +85,27 @@ def bot():
         entry_points=[MessageHandler(Filters.regex('کانال ها'), channels)],
         states={
             CHANNELS: [CallbackQueryHandler(add_channels_alert, pattern=r'1'),
-                       CallbackQueryHandler(
-                           remove_channels_alert, pattern=r'2'),
-                       MessageHandler(Filters.all, channel_callback)],
-            ADD_CHANNELS: [MessageHandler(Filters.forwarded, add_channel),
+                       CallbackQueryHandler(remove_channels_alert, pattern=r'2')],
+            ADD_CHANNELS: [MessageHandler(Filters.regex(r'@\w{5,}'), add_channel),
                            CommandHandler('done', channels)],
-            REMOVE_CHANNELS: [MessageHandler(Filters.regex(r'[0-9]+'), remove_channel),
-                              CommandHandler('done', channels)]
+            REMOVE_CHANNELS: [MessageHandler(Filters.regex(r'[0-9]+'), check_remove_channels),
+                              CommandHandler('done', remove_channels)]
+        },
+        fallbacks=[CallbackQueryHandler(end_features, pattern=r'0')],
+        map_to_parent={
+            SELECTING_ACTION: SELECTING_ACTION
+        }
+    )
+
+    admins_handler = ConversationHandler(
+        entry_points=[CommandHandler('admin', admins)],
+        states={
+            ADMINS: [CallbackQueryHandler(add_admins_alert, pattern=r'1'),
+                     CallbackQueryHandler(remove_admins_alert, pattern=r'2')],
+            ADD_ADMINS: [MessageHandler(Filters.regex(r'@\w{5,}'), add_admins),
+                         CommandHandler('done', admins)],
+            REMOVE_ADMINS: [MessageHandler(Filters.regex(r'[0-9]+'), check_remove_admins),
+                            CommandHandler('done', remove_admins)]
         },
         fallbacks=[CallbackQueryHandler(end_features, pattern=r'0')],
         map_to_parent={
@@ -90,7 +115,7 @@ def bot():
 
     process_handler = ConversationHandler(
         entry_points=[MessageHandler(
-            Filters.regex('شروع پردازش'), start_process)],
+            Filters.regex('شروع جستجو'), start_process)],
         states={
             SET_DATE: [CallbackQueryHandler(manually_date_alert, pattern=r'4'),
                        CallbackQueryHandler(choosen_date, pattern=r'1|2|3'),
@@ -111,13 +136,10 @@ def bot():
         states={
             SELECTING_ACTION: [process_handler,
                                channels_handler,
-                               words_handler],
+                               words_handler,
+                               admins_handler],
 
-            # NOTREGISTERED: [MessageHandler(Filters.all, access_denied)],
-
-            # C_ADMIN: [MessageHandler(Filters.regex(r'@[A-Za-z0-9]+'), create_admin),
-            #           # MessageHandler(~ Filters.regex(r"@[A-Za-z0-9]+"), wrong_username)
-            #           ]
+            NOTREGISTERED: [MessageHandler(Filters.all, access_denied)]
         },
         fallbacks=[
             CommandHandler('cancel', start)
@@ -131,4 +153,6 @@ def bot():
 
 
 if __name__ == '__main__':
+    Base.metadata.create_all(engine)
+    # Admin.initialize()
     bot()
