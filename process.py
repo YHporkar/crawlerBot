@@ -126,7 +126,7 @@ def next_posts(update, context):
                                   "شماره های {3} تا {4}".format(
                                       context.user_data['posts_count'], current_page, pages, (current_page-1)*5 + 1, context.user_data['posts_count']))
         update.message.reply_text(
-            'لطفا انتخاب کنید: \n برای دسترسی به بخش مدیریت /admin را ارسال کنید', reply_markup=start_markup)
+            'لطفا انتخاب کنیدد', reply_markup=start_markup)
         return SELECTING_ACTION
     else:
         for post in context.user_data['all_posts'][0:5]:

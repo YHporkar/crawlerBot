@@ -28,8 +28,13 @@ start_markup = ReplyKeyboardMarkup(start_keyboard, resize_keyboard=True)
 
 @login_required
 def start(update, context):
-    update.message.reply_text(
-        'لطفا انتخاب کنید: \n برای دسترسی به بخش مدیریت /admin را ارسال کنید', reply_markup=start_markup)
+    admin = Admin.get_by_username(username=update.message.from_user.username)
+    if admin.is_super:
+        update.message.reply_text(
+            'لطفا انتخاب کنید.\nبرای ورود به بخش مدیریت /admin را بفرستید', reply_markup=start_markup)
+    else:
+        update.message.reply_text(
+            'لطفا انتخاب کنید', reply_markup=start_markup)
     context.user_data['keywords'] = []
     context.user_data['channels'] = []
 
@@ -38,13 +43,13 @@ def start(update, context):
 
 def end_features(update, context):
     update.callback_query.message.reply_text(
-        'لطفا انتخاب کنید: \n برای دسترسی به بخش مدیریت /admin را ارسال کنید', reply_markup=start_markup)
+        'لطفا انتخاب کنید', reply_markup=start_markup)
     return SELECTING_ACTION
 
 
 def home(update, context):
     update.callback_query.message.reply_text(
-        'لطفا انتخاب کنید: \n برای دسترسی به بخش مدیریت /admin را ارسال کنید', reply_markup=start_markup)
+        'لطفا انتخاب کنید', reply_markup=start_markup)
     context.user_data['all_posts'] = []
     return SELECTING_ACTION
 
@@ -83,10 +88,11 @@ def bot():
         states={
             CHANNELS: [CallbackQueryHandler(add_channels_alert, pattern=r'1'),
                        CallbackQueryHandler(remove_channels_alert, pattern=r'2')],
-            ADD_CHANNELS: [MessageHandler(Filters.regex(r'@\w{5,}'), add_channel),
+            ADD_CHANNELS: [MessageHandler(Filters.regex(r'(https:\/\/t\.me\/\w+ ?| ?@\w+)'), add_channel),
                            CommandHandler('done', channels)],
             REMOVE_CHANNELS: [MessageHandler(Filters.regex(r'[0-9]+'), check_remove_channels),
                               CommandHandler('done', remove_channels)]
+            #   @\w{5,} |
         },
         fallbacks=[CallbackQueryHandler(end_features, pattern=r'0')],
         map_to_parent={
@@ -138,7 +144,7 @@ def bot():
                                words_handler,
                                admins_handler],
 
-            NOTREGISTERED: [MessageHandler(Filters.all, access_denied)]
+            # NOTREGISTERED: [MessageHandler(Filters.all, access_denied)]
         },
         fallbacks=[
             CommandHandler('cancel', start)

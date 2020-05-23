@@ -149,7 +149,7 @@ def get_matched_posts(channel, words, end_date):
 
     # url-e.g: https://t.me/varzesh3/107254
 
-    root_url = 'https://t.me/' + channel.get('username') + '/'
+    root_url = 'https://t.me/' + channel.get('username').replace('@', '') + '/'
     start = channel.get('start')
 
     soup = get_soup(root_url + str(start))
