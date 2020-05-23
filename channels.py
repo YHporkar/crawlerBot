@@ -3,7 +3,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from crawler import get_channel_name
 
 from login import login_required
-
+import re
 
 CHANNELS, ADD_CHANNELS, REMOVE_CHANNELS = range(4, 7)
 
@@ -38,10 +38,11 @@ def add_channel(update, context):
     for channel in context.user_data['channels']:
         channel_store_list.append(channel.get('username'))
     for username in channel_sent_list:
-        if username.__contains__('t.me'):
-            username = username.replace('https://t.me/', '@')
+        if username.__contains__('t.me') or username.__contains__('telegram.me'):
+            username = '@' + \
+                re.search(r'\/\w{5,}', username).group(0).replace('/', '')
         if username not in channel_store_list:
-            channel_name = get_channel_name(username.replace('@', ''))
+            channel_name = get_channel_name(username)
             if channel_name:
                 context.user_data['channels'].append(
                     {'username': username, 'channel_name': channel_name.get_text()})

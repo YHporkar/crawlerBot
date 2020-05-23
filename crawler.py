@@ -61,7 +61,7 @@ def get_caption(soup):
     except AttributeError:
         caption = ''
 
-    return caption
+    return re.sub(r'`\*_', '', caption)
 
 
 def get_views(soup):
@@ -135,12 +135,14 @@ def check_match(caption, words):
 
 
 def get_last_post_url(channel_username):
-    channel_soup = get_soup('https://t.me/s/' + channel_username + '/')
+    channel_soup = get_soup(
+        'https://t.me/s/' + channel_username.replace('@', '') + '/')
     return int(re.search(r'\/\d+', channel_soup.find_all('div', {'class': 'tgme_widget_message force_userpic js-widget_message'})[-1].get('data-post')).group(0).replace('/', ''))
 
 
 def get_channel_name(channel_username):
-    channel_soup = get_soup('https://t.me/s/' + channel_username + '/')
+    channel_soup = get_soup(
+        'https://t.me/s/' + channel_username.replace('@', '') + '/')
     return channel_soup.find('div', {'class': 'tgme_header_title'})
 
 

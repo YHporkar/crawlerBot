@@ -29,6 +29,7 @@ start_markup = ReplyKeyboardMarkup(start_keyboard, resize_keyboard=True)
 @login_required
 def start(update, context):
     admin = Admin.get_by_username(username=update.message.from_user.username)
+    context.user_data['is_super'] = admin.is_super
     if admin.is_super:
         update.message.reply_text(
             'لطفا انتخاب کنید.\nبرای ورود به بخش مدیریت /admin را بفرستید', reply_markup=start_markup)
@@ -42,14 +43,22 @@ def start(update, context):
 
 
 def end_features(update, context):
-    update.callback_query.message.reply_text(
-        'لطفا انتخاب کنید', reply_markup=start_markup)
+    if context.user_data['is_super']:
+        update.callback_query.message.reply_text(
+            'لطفا انتخاب کنید.\nبرای ورود به بخش مدیریت /admin را بفرستید', reply_markup=start_markup)
+    else:
+        update.callback_query.message.reply_text(
+            'لطفا انتخاب کنید', reply_markup=start_markup)
     return SELECTING_ACTION
 
 
 def home(update, context):
-    update.callback_query.message.reply_text(
-        'لطفا انتخاب کنید', reply_markup=start_markup)
+    if context.user_data['is_super']:
+        update.callback_query.message.reply_text(
+            'لطفا انتخاب کنید.\nبرای ورود به بخش مدیریت /admin را بفرستید', reply_markup=start_markup)
+    else:
+        update.callback_query.message.reply_text(
+            'لطفا انتخاب کنید', reply_markup=start_markup)
     context.user_data['all_posts'] = []
     return SELECTING_ACTION
 
@@ -88,7 +97,7 @@ def bot():
         states={
             CHANNELS: [CallbackQueryHandler(add_channels_alert, pattern=r'1'),
                        CallbackQueryHandler(remove_channels_alert, pattern=r'2')],
-            ADD_CHANNELS: [MessageHandler(Filters.regex(r'(https:\/\/t\.me\/\w+ ?| ?@\w+)'), add_channel),
+            ADD_CHANNELS: [MessageHandler(Filters.regex(r'(https:\/\/t\.me\/\w+ ?| ?@\w{5,})'), add_channel),
                            CommandHandler('done', channels)],
             REMOVE_CHANNELS: [MessageHandler(Filters.regex(r'[0-9]+'), check_remove_channels),
                               CommandHandler('done', remove_channels)]

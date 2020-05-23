@@ -1,4 +1,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
+from telegram.error import BadRequest
+
+
 import math
 from datetime import datetime, timedelta
 from crawler import get_matched_posts, get_last_post_url
@@ -118,20 +121,30 @@ def next_posts(update, context):
         return SELECTING_ACTION
     if count <= 5:
         for post in context.user_data['all_posts'][0:count]:
+            try:
+                update.message.reply_text(
+                    prettify(post), parse_mode=ParseMode.MARKDOWN)
+                context.user_data['all_posts'] = []
+            except BadRequest:
+                continue
+            update.message.reply_text("{0} پست یافت شد \n\n"
+                                      "صفحه {1} از {2} \n\n"
+                                      "شماره های {3} تا {4}".format(
+                                          context.user_data['posts_count'], current_page, pages, (current_page-1)*5 + 1, context.user_data['posts_count']))
+        if context.user_data['is_super']:
             update.message.reply_text(
-                prettify(post), parse_mode=ParseMode.MARKDOWN)
-            context.user_data['all_posts'] = []
-        update.message.reply_text("{0} پست یافت شد \n\n"
-                                  "صفحه {1} از {2} \n\n"
-                                  "شماره های {3} تا {4}".format(
-                                      context.user_data['posts_count'], current_page, pages, (current_page-1)*5 + 1, context.user_data['posts_count']))
-        update.message.reply_text(
-            'لطفا انتخاب کنیدد', reply_markup=start_markup)
+                'لطفا انتخاب کنید.\nبرای ورود به بخش مدیریت /admin را بفرستید', reply_markup=start_markup)
+        else:
+            update.callback_query.message.reply_text(
+                'لطفا انتخاب کنید', reply_markup=start_markup)
         return SELECTING_ACTION
     else:
         for post in context.user_data['all_posts'][0:5]:
-            update.message.reply_text(
-                prettify(post), parse_mode=ParseMode.MARKDOWN)
+            try:
+                update.message.reply_text(
+                    prettify(post), parse_mode=ParseMode.MARKDOWN)
+            except BadRequest:
+                continue
         context.user_data['all_posts'] = context.user_data['all_posts'][5:]
         update.message.reply_text("{0} پست یافت شد \n\n"
                                   "صفحه {1} از {2} \n\n"
