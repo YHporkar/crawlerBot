@@ -44,11 +44,18 @@ def is_grouped(soup):
 def get_album_last_index(soup):
     last_album_index = 0
     # https://t.me/varzesh3/107498?single and last_album_index is 107498
-    if is_grouped(soup):
-        last_album_index = int(re.search(r'\/[0-9]+', soup.find_all(
-            'a', {'class': 'tgme_widget_message_photo_wrap grouped_media_wrap blured js-message_photo'})[0].get('href')).group(0).replace('/', ''))
+    links = soup.find_all('a')
+    album_links = []
+    for link in links:
+        if link.get('href').__contains__('?single'):
+            album_links.append(link.get('href'))
+    last_album_index = int(
+        re.search(r'\/[0-9]+', album_links[0]).group(0).replace('/', ''))
 
     return last_album_index
+
+
+print(get_album_last_index(get_soup('https://t.me/farsna/193178')))
 
 
 def get_caption(soup):
@@ -74,8 +81,12 @@ def get_date(soup):
 
 def get_post_elements(soup):
     elements = {}
-    elements.update({'date': get_date(soup), 'caption': get_caption(
-        soup), 'lai': get_album_last_index(soup), 'views': get_views(soup)})
+    if is_grouped(soup):
+        elements.update({'date': get_date(soup), 'caption': get_caption(
+            soup), 'lai': get_album_last_index(soup), 'views': get_views(soup)})
+    else:
+        elements.update({'date': get_date(soup), 'caption': get_caption(
+            soup), 'lai': 0, 'views': get_views(soup)})
 
     return elements
 
