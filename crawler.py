@@ -55,9 +55,6 @@ def get_album_last_index(soup):
     return last_album_index
 
 
-print(get_album_last_index(get_soup('https://t.me/farsna/193178')))
-
-
 def get_caption(soup):
     try:
         for br in soup.find_all('br'):
@@ -71,7 +68,10 @@ def get_caption(soup):
 
 
 def get_views(soup):
-    return soup.find('span', {'class': 'tgme_widget_message_views'}).get_text()
+    try:
+        return soup.find('span', {'class': 'tgme_widget_message_views'}).get_text()
+    except AttributeError:
+        return '0'
 
 
 def get_date(soup):
@@ -179,4 +179,5 @@ def get_matched_posts(channel, words, end_date):
         else:
             start -= 1
         soup = get_soup(root_url + str(start))
+        time.sleep(0.1)
     return posts
