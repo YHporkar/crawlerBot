@@ -23,14 +23,11 @@ def get_soup(url):
 
 
 def is_there_post(soup):
-    try:
-        post = soup.find(
-            'div', {'class': 'tgme_widget_message js-widget_message'}).get('data-post')
-        if post:
-            return True
-        return False
-    except AttributeError:
-        return False
+    post = soup.find(
+        'div', {'class': 'tgme_widget_message js-widget_message'}).get('data-post')
+    if post:
+        return True
+    return False
 
 
 def is_grouped(soup):
