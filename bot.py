@@ -6,7 +6,7 @@ from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, Conv
 
 from config import token
 
-from models import Admin, Base, engine
+from models import Admin, Base, engine, Keyword
 
 from process import *
 from keywords import *
@@ -36,8 +36,6 @@ def start(update, context):
     else:
         update.message.reply_text(
             'لطفا انتخاب کنید', reply_markup=start_markup)
-    context.user_data['keywords'] = []
-    context.user_data['channels'] = []
 
     return SELECTING_ACTION
 
@@ -53,13 +51,20 @@ def end_features(update, context):
 
 
 def home(update, context):
+    if not update.message:
+        update = update.callback_query
     if context.user_data['is_super']:
-        update.callback_query.message.reply_text(
+        update.message.reply_text(
             'لطفا انتخاب کنید.\nبرای ورود به بخش مدیریت /admin را بفرستید', reply_markup=start_markup)
     else:
-        update.callback_query.message.reply_text(
+        update.message.reply_text(
             'لطفا انتخاب کنید', reply_markup=start_markup)
     context.user_data['all_posts'] = []
+
+    # remove all keywords
+    for keyword in Keyword.get_all():
+        Keyword.delete(keyword)
+
     return SELECTING_ACTION
 
 
@@ -81,7 +86,7 @@ def bot():
         states={
             WORDS: [CallbackQueryHandler(add_keywords_alert, pattern=r'1'),
                     CallbackQueryHandler(remove_keywords_alert, pattern=r'2')],
-            ADD_WORDS: [MessageHandler(Filters.regex(r'-?[ شسیبلاتنمکگضصثقفغعهخحجچپظطزرذدئو,]+'), add_keywords),
+            ADD_WORDS: [MessageHandler(Filters.regex(r'[ شسیبلاتنمکگضصثقفغعهخحجچپظطزرذدئو,]+'), add_keywords),
                         CommandHandler('done', keywords)],
             REMOVE_WORDS: [MessageHandler(Filters.regex(r'[0-9]+'), check_remove_keywords),
                            CommandHandler('done', remove_keywords)]

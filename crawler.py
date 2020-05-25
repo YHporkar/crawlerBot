@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from bs4 import BeautifulSoup
 import requests
 import re
@@ -29,9 +31,6 @@ def is_there_post(soup):
         return False
     except AttributeError:
         return False
-
-
-# print(is_there_post(get_soup('https://t.me/varzesh3/107557')))
 
 
 def is_grouped(soup):
@@ -81,36 +80,32 @@ def get_post_elements(soup):
     return elements
 
 
-# get_post_elements('https://t.me/varzesh3/107257')
-# print(get_caption(get_soup('https://t.me/farsna/192508')))
-
-
 def arrange_words(words):
     arranged_words = {'and': [], 'or': []}
     for word in words:
-        if word.__contains__(','):
-            arranged_words['and'].extend(word.split(','))
+        if word.name.__contains__(','):
+            arranged_words['and'].extend(word.name.split(','))
         # elif word.__contains__('-'):
         #     arranged_words['not'].append(word.replace('-', ''))
         else:
-            arranged_words['or'].append(word)
+            arranged_words['or'].append(word.name)
     return arranged_words
 
 
 def check_match(caption, words):
-    raw_caption = re.sub(r'[!@#()_=+?\.,،»«:\']+', '', caption)
+    raw_caption = re.sub(r'[!@#()_=+?\.,،»«:\-\']+', ' ', caption)
     or_matched, and_matched = False, False
     if words['or'] != []:
         for or_word in words['or']:
             if or_word in raw_caption:
                 or_matched = True
+                break
             else:
                 or_matched = False
 
     if words['and'] != []:
         for and_word in words['and']:
             if and_word in raw_caption:
-                print('is' + and_word)
                 and_matched = True
             else:
                 and_matched = False
@@ -123,15 +118,10 @@ def check_match(caption, words):
     #         else:
     #             not_matched = False
     # print(or_matched, and_matched)
+
     if or_matched or and_matched:
         return True
     return False
-
-
-# url = 'https://t.me/farsna/192871'
-# caption = get_post_elements(get_soup(url))['caption']
-# print(caption)
-# print(check_match(caption, arrange_words(['فلسطین,قدس'])))
 
 
 def get_last_post_url(channel_username):
@@ -151,8 +141,8 @@ def get_matched_posts(channel, words, end_date):
 
     # url-e.g: https://t.me/varzesh3/107254
 
-    root_url = 'https://t.me/' + channel.get('username').replace('@', '') + '/'
-    start = channel.get('start')
+    root_url = 'https://t.me/' + channel.username.replace('@', '') + '/'
+    start = channel.start
 
     soup = get_soup(root_url + str(start))
 
@@ -166,12 +156,12 @@ def get_matched_posts(channel, words, end_date):
 
             if check_match(elements['caption'], arrange_words(words)):
                 posts.append({'url': root_url + str(start),
-                              'caption': elements['caption'], 'channel_name': channel.get('channel_name'), 'views': float_to_int(elements['views'])})
+                              'caption': elements['caption'], 'channel_name': channel.name, 'views': float_to_int(elements['views'])})
                 print('added')
 
             # skip album additional urls
             if elements['lai'] > 0:
-                start -= start - elements['lai'] + 2
+                start -= start - elements['lai'] + 1
             else:
                 start -= 1
             date = elements['date']

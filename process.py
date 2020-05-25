@@ -6,22 +6,26 @@ import math
 from datetime import datetime, timedelta
 from crawler import get_matched_posts, get_last_post_url
 
-from bot import SELECTING_ACTION, start_markup
+from bot import SELECTING_ACTION, start_markup, home
 
 from persiantools.jdatetime import JalaliDate
 
 from login import login_required
+
+from models import Channel, Admin
 
 SET_DATE, GET_POSTS = range(7, 9)
 
 
 @login_required
 def start_process(update, context):
-    if context.user_data['keywords'] == []:
+    context.user_data['me'] = Admin.get_by_username(
+        update.message.from_user.username)
+    if Admin.get_keywords(Admin.get_by_username(update.message.from_user.username).username) == []:
         update.message.reply_text(
             'شما ابتدا باید برای جستجو کلید واژه ای تعیین کنید')
         return SELECTING_ACTION
-    if context.user_data['channels'] == []:
+    if Channel.get_all() == []:
         update.message.reply_text(
             'شما ابتدا باید برای جستجو کانالی تعیین کنید')
         return SELECTING_ACTION
@@ -52,7 +56,7 @@ def manually_date_alert(update, context):
 
 
 def manually_date(update, context):
-    persian_date = list(map(int, update.message.text.split('-')))
+    persian_date = list(map(int, update.effective_message.text.split('-')))
     try:
         date = JalaliDate(persian_date[0], persian_date[1],
                           persian_date[2]).to_gregorian()
@@ -85,12 +89,11 @@ def choosen_date(update, context):
 
 def get_posts(update, context, date):
     context.user_data['all_posts'] = []
+    for channel in Channel.get_all():
 
-    for channel in context.user_data['channels']:
+        Channel.update_start(channel, get_last_post_url(channel.username))
 
-        channel.update({'start': get_last_post_url(channel.get('username'))})
-
-        for post in get_matched_posts(channel, context.user_data['keywords'], date):
+        for post in get_matched_posts(channel, Admin.get_keywords(context.user_data['me'].username), date):
             context.user_data['all_posts'].append(post)
     context.user_data['posts_count'] = len(context.user_data['all_posts'])
     return next_posts(update, context)
@@ -106,57 +109,50 @@ def next_posts(update, context):
     if not update.message:
         update = update.callback_query
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
     count = len(context.user_data['all_posts'])
     pages = math.ceil(context.user_data['posts_count'] / 5)
-
-    if count % 5 == 0:
-        current_page = pages - int(count/5) + 1
-    else:
-        current_page = pages - int(count/5)
 
     if count == 0:
         update.message.reply_text(
             'متأسفانه پستی یافت نشد', reply_markup=start_markup)
-        return SELECTING_ACTION
-    if count <= 5:
-        for post in context.user_data['all_posts'][0:count]:
-            try:
-                update.message.reply_text(
-                    prettify(post), parse_mode=ParseMode.MARKDOWN)
-                context.user_data['all_posts'] = []
-            except BadRequest:
-                continue
-            update.message.reply_text("{0} پست یافت شد \n\n"
-                                      "صفحه {1} از {2} \n\n"
-                                      "شماره های {3} تا {4}".format(
-                                          context.user_data['posts_count'], current_page, pages, (current_page-1)*5 + 1, context.user_data['posts_count']))
-        if context.user_data['is_super']:
-            update.message.reply_text(
-                'لطفا انتخاب کنید.\nبرای ورود به بخش مدیریت /admin را بفرستید', reply_markup=start_markup)
-        else:
-            update.callback_query.message.reply_text(
-                'لطفا انتخاب کنید', reply_markup=start_markup)
-        return SELECTING_ACTION
-    else:
-        for post in context.user_data['all_posts'][0:5]:
-            try:
-                update.message.reply_text(
-                    prettify(post), parse_mode=ParseMode.MARKDOWN)
-            except BadRequest:
-                continue
-        context.user_data['all_posts'] = context.user_data['all_posts'][5:]
-        update.message.reply_text("{0} پست یافت شد \n\n"
-                                  "صفحه {1} از {2} \n\n"
-                                  "شماره های {3} تا {4}".format(
-                                      context.user_data['posts_count'], current_page, pages, (current_page-1)*5 + 1, current_page*5), reply_markup=reply_markup)
+        return home(update, context)
+    elif count <= 5:
+        show_count = count
+        show_posts(show_count, start_markup, pages, count, update, context)
+        return home(update, context)
+    elif count > 5:
+        show_posts(5, InlineKeyboardMarkup(keyboard),
+                   pages, count, update, context)
         return GET_POSTS
 
 
+def show_posts(show_count, reply_markup, pages, count, update, context):
+    if count < 5:
+        current_page = pages - int(count/5)
+        last = context.user_data['posts_count']
+    elif count % 5 == 0:
+        current_page = pages - int(count/5) + 1
+        last = context.user_data['posts_count']
+    else:
+        current_page = pages - int(count/5)
+        last = current_page*5
+    for post in context.user_data['all_posts'][0:show_count]:
+        try:
+            update.message.reply_text(
+                prettify(post), parse_mode=ParseMode.MARKDOWN)
+        except BadRequest:
+            continue
+    context.user_data['all_posts'] = context.user_data['all_posts'][show_count:]
+    update.message.reply_text("{0} پست یافت شد \n\n"
+                              "صفحه {1} از {2} \n\n"
+                              "شماره های {3} تا {4}".format(
+                                  context.user_data['posts_count'], current_page, pages, (current_page-1)*5 + 1, last), reply_markup=reply_markup)
+
+
 def prettify(post):
-    prettier = "نام کانال: {0} \n\n"\
-        "[مشاهده پست در کانال]({1}) \n\n"\
-        "تعداد ویو: {2} \n\n"\
-        "کپشن: \n {3} \n\n".format(
+    prettier = "📢 {0} \n\n"\
+        "🔗 [مشاهده پست در کانال]({1}) \n\n"\
+        "👁‍🗨 تعداد بازدید: {2} \n➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖➖\n"\
+        "💬 کپشن: \n {3} \n\n".format(
             post['channel_name'], post['url'], post['views'], post['caption'])
     return prettier
