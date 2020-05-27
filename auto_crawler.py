@@ -7,13 +7,13 @@ from models import Channel, Post
 from crawler import get_last_post_url, is_there_post, get_post_elements, float_to_int, get_soup, get_date
 
 
-s = sched.scheduler(time.time, time.sleep)
+s1 = sched.scheduler(time.time, time.sleep)
 
 
 def crawl_channels(channels):
     print(datetime.datetime.now().time(), ' Updating...')
     for channel in channels:
-        index = 50
+        index = 1
         print(channel.username)
         post_store = []
         post_store = Post.get_urls_by_channel(
@@ -45,10 +45,10 @@ def crawl_channels(channels):
             time.sleep(0.5)
             i -= 1
 
-    s.enter(3600, 1, crawl_channels, (channels,))
+    s1.enter(3600, 1, crawl_channels, (channels,))
     print(datetime.datetime.now().time(), ' Everything is up to date.')
 
 
-# https: // t.me/varzesh3/107981
-s.enter(0, 1, crawl_channels, (Channel.get_all(),))
-s.run()
+s1.enter(0, 1, crawl_channels, (Channel.get_all(),))
+
+s1.run()

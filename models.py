@@ -5,7 +5,6 @@ from sqlalchemy.exc import IntegrityError
 
 from config import SQLALCHEMY_DATABASE_URI
 
-
 Base = declarative_base()
 engine = create_engine(SQLALCHEMY_DATABASE_URI)
 
@@ -106,6 +105,9 @@ class Post(Base):
     def get_by_date(date):
         return session.query(Post).filter(Post.date >= date).all()
 
+    def get_old_posts(date):
+        return session.query(Post).filter(Post.date < date).all()
+
     def get_urls_by_channel(channel_url):
         urls = []
         for post in session.query(Post).filter(Post.url.like('%' + channel_url + '%')).all():
@@ -117,6 +119,6 @@ class Post(Base):
             session.add(self)
             session.commit()
 
-    def delete(channel):
-        session.delete(channel)
+    def delete(post):
+        session.delete(post)
         session.commit()
