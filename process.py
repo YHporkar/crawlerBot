@@ -105,7 +105,6 @@ def get_posts(update, context, date):
 def next_posts(update, context):
     keyboard = [[InlineKeyboardButton(
         "ریست و بازگشت به خانه", callback_data='5'), InlineKeyboardButton("صفحه بعد", callback_data='1')]]
-
     if not update.message:
         update = update.callback_query
 
@@ -132,7 +131,7 @@ def show_posts(show_count, reply_markup, pages, count, update, context):
         last = context.user_data['posts_count']
     elif count % 5 == 0:
         current_page = pages - int(count/5) + 1
-        last = context.user_data['posts_count']
+        last = current_page*5
     else:
         current_page = pages - int(count/5)
         last = current_page*5

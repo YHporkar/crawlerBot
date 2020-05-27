@@ -67,7 +67,10 @@ def get_caption(soup):
     except AttributeError:
         caption = ''
 
-    return re.sub(r'`\*_', '', caption)
+    subs = '[]`*()_'
+    for s in subs:
+        re.sub(s, "\\" + s, caption)
+    return caption
 
 
 def get_views(soup):
@@ -191,7 +194,7 @@ def get_matched_posts_database(words, end_date):
     words = arrange_words(words)
     for post in Post.get_by_date(end_date):
         if check_match(post.caption, words):
-            posts.append({'url': post.url, 'caption': post.caption,
+            posts.append({'url': post.url, 'caption': caption,
                           'channel_name': post.channel_name, 'views': float_to_int(str(post.views))})
 
     return posts
