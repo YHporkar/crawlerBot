@@ -104,7 +104,7 @@ class Post(Base):
     date = Column(Date, nullable=False)
 
     def get_by_date(date):
-        return session.query(Post).filter(Post.date > date).all()
+        return session.query(Post).filter(Post.date >= date).all()
 
     def get_urls_by_channel(channel_url):
         urls = []

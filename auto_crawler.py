@@ -13,12 +13,12 @@ s = sched.scheduler(time.time, time.sleep)
 def crawl_channels(channels):
     print(datetime.datetime.now().time(), ' Updating...')
     for channel in channels:
-        index = 11
+        index = 50
         print(channel.username)
+        post_store = []
         post_store = Post.get_urls_by_channel(
             channel.username.replace('@', ''))
         # print(post_store)
-        post_store = []
         root_url = 'https://t.me/' + channel.username.replace('@', '') + '/'
         start = Channel.update_start(
             channel, get_last_post_url(channel.username))
@@ -28,6 +28,7 @@ def crawl_channels(channels):
             # if post is not already in database
             if root_url + str(i) in post_store:
                 print('duplicate')
+                i -= 1
                 continue
             soup = get_soup(root_url + str(i))
             if is_there_post(soup):
