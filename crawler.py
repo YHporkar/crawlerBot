@@ -69,7 +69,7 @@ def get_caption(soup):
 
     subs = '[]`*()_'
     for s in subs:
-        re.sub(s, "\\" + s, caption)
+        caption = caption.replace(s, '\\'+s)
     return caption
 
 
