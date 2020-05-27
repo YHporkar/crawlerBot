@@ -61,10 +61,6 @@ def home(update, context):
             'لطفا انتخاب کنید', reply_markup=start_markup)
     context.user_data['all_posts'] = []
 
-    # remove all keywords
-    for keyword in Keyword.get_all():
-        Keyword.delete(keyword)
-
     return SELECTING_ACTION
 
 
@@ -102,7 +98,7 @@ def bot():
         states={
             CHANNELS: [CallbackQueryHandler(add_channels_alert, pattern=r'1'),
                        CallbackQueryHandler(remove_channels_alert, pattern=r'2')],
-            ADD_CHANNELS: [MessageHandler(Filters.regex(r'(https:\/\/t\.me\/\w+ ?| ?@\w{5,})'), add_channel),
+            ADD_CHANNELS: [MessageHandler(Filters.regex(r'(https:\/\/t\.me\/\w{5,} ?| ?@\w{5,})'), add_channel),
                            CommandHandler('done', channels)],
             REMOVE_CHANNELS: [MessageHandler(Filters.regex(r'[0-9]+'), check_remove_channels),
                               CommandHandler('done', remove_channels)]

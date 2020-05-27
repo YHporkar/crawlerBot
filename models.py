@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, create_engine, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Date, Text, create_engine, ForeignKey, Boolean
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import IntegrityError
@@ -87,6 +87,35 @@ class Channel(Base):
     def update_start(channel, new_start):
         channel.start = new_start
         session.commit()
+        return new_start
+
+    def delete(channel):
+        session.delete(channel)
+        session.commit()
+
+
+class Post(Base):
+    __tablename__ = 'post'
+    id = Column(Integer, primary_key=True)
+    caption = Column(Text)
+    url = Column(String(50), nullable=False, unique=True)
+    views = Column(Integer, nullable=False)
+    channel_name = Column(String(50), nullable=False)
+    date = Column(Date, nullable=False)
+
+    def get_by_date(date):
+        return session.query(Post).filter(Post.date > date).all()
+
+    def get_urls_by_channel(channel_url):
+        urls = []
+        for post in session.query(Post).filter(Post.url.like('%' + channel_url + '%')).all():
+            urls.append(post.url)
+        return urls
+
+    def add(self):
+        if not session.query(Post).filter_by(url=self.url).first():
+            session.add(self)
+            session.commit()
 
     def delete(channel):
         session.delete(channel)

@@ -37,7 +37,10 @@ def channels(update, context):
 
 def add_channels_alert(update, context):
     update.callback_query.message.reply_text(
-        'آیدی کانال ها را نوشته و بفرستید')
+        "آیدی کانال ها را نوشته و بفرستید\n"
+        "بطور مثال میتوانید کانال ها را به صورت های زیر ارسال کنید:\n"
+        "@username\n"
+        "https://t.me/username/12345")
     return ADD_CHANNELS
 
 
@@ -54,8 +57,11 @@ def add_channel(update, context):
         channel_store_list.append(channel.username)
     for username in channel_sent_list:
         if username.__contains__('t.me') or username.__contains__('telegram.me'):
-            username = '@' + \
-                re.search(r'\/\w{5,}', username).group(0).replace('/', '')
+            try:
+                username = '@' + \
+                    re.search(r'\/\w{5,}', username).group(0).replace('/', '')
+            except Exception:
+                continue
         if username not in channel_store_list:
             channel_name = get_channel_name(username)
             if channel_name:

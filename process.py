@@ -4,9 +4,10 @@ from telegram.error import BadRequest
 
 import math
 from datetime import datetime, timedelta
-from crawler import get_matched_posts, get_last_post_url
+from crawler import get_matched_posts_database, get_last_post_url
 
 from bot import SELECTING_ACTION, start_markup, home
+from keywords import remove_all_keywords
 
 from persiantools.jdatetime import JalaliDate
 
@@ -89,13 +90,12 @@ def choosen_date(update, context):
 
 def get_posts(update, context, date):
     context.user_data['all_posts'] = []
-    for channel in Channel.get_all():
+    # Channel.update_start(channel, get_last_post_url(channel.username))
 
-        Channel.update_start(channel, get_last_post_url(channel.username))
-
-        for post in get_matched_posts(channel, Admin.get_keywords(context.user_data['me'].username), date):
-            context.user_data['all_posts'].append(post)
+    for post in get_matched_posts_database(Admin.get_keywords(context.user_data['me'].username), date):
+        context.user_data['all_posts'].append(post)
     context.user_data['posts_count'] = len(context.user_data['all_posts'])
+    remove_all_keywords()
     return next_posts(update, context)
     # context.user_data['count'] = len(all_posts)
     # update.message.reply_text('{} posts found'.format(

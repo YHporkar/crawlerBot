@@ -34,7 +34,7 @@ def add_keywords_alert(update, context):
     update.callback_query.message.reply_text(
         "واژه های خود را بفرستید سپس /done را ارسال کنید: \n"
         "برای اینکه وجود چند واژه باهم در یک کپشن را تعیین کنید بین هر واژه از علامت ',' استفاده کنید\n\n"
-        "مثال: واژه1,واژه2")
+        "مثال: واژه،واژه2")
     return ADD_WORDS
 
 
@@ -79,3 +79,8 @@ def remove_keywords(update, context):
         Keyword.delete(keyword)
         context.user_data['remove_keywords'].remove(keyword)
     return keywords(update, context)
+
+
+def remove_all_keywords():
+    for keyword in Keyword.get_all():
+        Keyword.delete(keyword)

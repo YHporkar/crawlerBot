@@ -3,8 +3,11 @@
 from bs4 import BeautifulSoup
 import requests
 import re
+
 import datetime
 import time
+
+from models import Post
 
 
 def float_to_int(num):
@@ -94,8 +97,8 @@ def get_post_elements(soup):
 def arrange_words(words):
     arranged_words = {'and': [], 'or': []}
     for word in words:
-        if word.name.__contains__(','):
-            arranged_words['and'].extend(word.name.split(','))
+        if word.name.__contains__('،'):
+            arranged_words['and'].extend(word.name.split('،'))
         # elif word.__contains__('-'):
         #     arranged_words['not'].append(word.replace('-', ''))
         else:
@@ -180,4 +183,15 @@ def get_matched_posts(channel, words, end_date):
             start -= 1
         soup = get_soup(root_url + str(start))
         time.sleep(0.1)
+    return posts
+
+
+def get_matched_posts_database(words, end_date):
+    posts = []
+    words = arrange_words(words)
+    for post in Post.get_by_date(end_date):
+        if check_match(post.caption, words):
+            posts.append({'url': post.url, 'caption': post.caption,
+                          'channel_name': post.channel_name, 'views': float_to_int(str(post.views))})
+
     return posts
