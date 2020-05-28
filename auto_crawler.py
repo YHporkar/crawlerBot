@@ -23,7 +23,7 @@ def crawl_channels(channels):
         start = Channel.update_start(
             channel, get_last_post_url(channel.username))
         i = start
-        while(i >= start - index):
+        while(i >= start - index and i != 0):
             print(root_url + str(i))
             # if post is not already in database
             if root_url + str(i) in post_store:

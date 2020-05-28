@@ -144,7 +144,10 @@ def check_match(caption, words):
 def get_last_post_url(channel_username):
     channel_soup = get_soup(
         'https://t.me/s/' + channel_username.replace('@', '') + '/')
-    return int(re.search(r'\/\d+', channel_soup.find_all('div', {'class': 'tgme_widget_message force_userpic js-widget_message'})[-1].get('data-post')).group(0).replace('/', ''))
+    try:
+        return int(re.search(r'\/\d+', channel_soup.find_all('div', {'class': 'tgme_widget_message force_userpic js-widget_message'})[-1].get('data-post')).group(0).replace('/', ''))
+    except IndexError:
+        return 0
 
 
 def get_channel_name(channel_username):
@@ -194,7 +197,7 @@ def get_matched_posts_database(words, end_date):
     words = arrange_words(words)
     for post in Post.get_by_date(end_date):
         if check_match(post.caption, words):
-            posts.append({'url': post.url, 'caption': caption,
+            posts.append({'url': post.url, 'caption': post.caption,
                           'channel_name': post.channel_name, 'views': float_to_int(str(post.views))})
 
     return posts
