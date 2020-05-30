@@ -31,6 +31,7 @@ def keywords(update, context):
 
 
 def add_keywords_alert(update, context):
+    update.callback_query.answer()
     update.callback_query.message.reply_text(
         "واژه های خود را بفرستید سپس /done را ارسال کنید: \n"
         "برای اینکه وجود چند واژه باهم در یک کپشن را تعیین کنید بین هر واژه از علامت ',' استفاده کنید\n\n"
@@ -54,6 +55,7 @@ def add_keywords(update, context):
 
 
 def remove_keywords_alert(update, context):
+    update.callback_query.answer()
     update.callback_query.message.reply_text(
         'شماره واژه هایی که قصد حذف شان را دارید بفرستید سپس /done را ارسال کنید: ')
     return REMOVE_WORDS

@@ -49,6 +49,7 @@ def start_process(update, context):
 
 
 def manually_date_alert(update, context):
+    update.callback_query.answer()
     update.callback_query.edit_message_text(
         " تاریخ را با فرمت زیر ارسال کنید \n\n"
         "روز-ماه-سال\n"
@@ -75,6 +76,7 @@ def wrong_date(update, context):
 
 
 def choosen_date(update, context):
+    update.callback_query.answer()
     data = update.callback_query.data
     date = ''
     if data == '1':

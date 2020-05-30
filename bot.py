@@ -41,6 +41,7 @@ def start(update, context):
 
 
 def end_features(update, context):
+    update.callback_query.answer()
     if context.user_data['is_super']:
         update.callback_query.message.reply_text(
             'لطفا انتخاب کنید.\nبرای ورود به بخش مدیریت /admin را بفرستید', reply_markup=start_markup)
@@ -53,6 +54,7 @@ def end_features(update, context):
 def home(update, context):
     if not update.message:
         update = update.callback_query
+        update.answer()
     if context.user_data['is_super']:
         update.message.reply_text(
             'لطفا انتخاب کنید.\nبرای ورود به بخش مدیریت /admin را بفرستید', reply_markup=start_markup)
@@ -97,7 +99,10 @@ def bot():
         entry_points=[MessageHandler(Filters.regex('کانال ها'), channels)],
         states={
             CHANNELS: [CallbackQueryHandler(add_channels_alert, pattern=r'1'),
-                       CallbackQueryHandler(remove_channels_alert, pattern=r'2')],
+                       CallbackQueryHandler(
+                           remove_channels_alert, pattern=r'2'),
+                       CallbackQueryHandler(next_channels, pattern=r'4'),
+                       CallbackQueryHandler(prev_channels, pattern=r'3')],
             ADD_CHANNELS: [MessageHandler(Filters.regex(r'(https:\/\/t\.me\/\w{5,} ?| ?@\w{5,})'), add_channel),
                            CommandHandler('done', channels)],
             REMOVE_CHANNELS: [MessageHandler(Filters.regex(r'[0-9]+'), check_remove_channels),

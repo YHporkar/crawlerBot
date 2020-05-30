@@ -4,10 +4,23 @@ from crawler import get_channel_name
 
 from login import login_required
 import re
+import math
 
 from models import Channel, Admin
 
 CHANNELS, ADD_CHANNELS, REMOVE_CHANNELS = range(4, 7)
+
+
+super_keyboard = [[InlineKeyboardButton("صفحه قبل", callback_data='3'),
+                   InlineKeyboardButton("صفحه بعد", callback_data='4')],
+                  [InlineKeyboardButton("افزودن", callback_data='1'),
+                   InlineKeyboardButton("حذف", callback_data='2')],
+                  [InlineKeyboardButton("خانه", callback_data='0')]]
+
+normal_keyboard = [[InlineKeyboardButton("صفحه قبل", callback_data='3'),
+                    InlineKeyboardButton("صفحه بعد", callback_data='4')],
+                   [InlineKeyboardButton("افزودن", callback_data='1')],
+                   [InlineKeyboardButton("خانه", callback_data='0')]]
 
 
 @login_required
@@ -16,26 +29,67 @@ def channels(update, context):
     context.user_data['remove_channels'] = []
 
     if Admin.get_by_username(update.message.from_user.username).is_super:
-        keyboard = [[InlineKeyboardButton("افزودن", callback_data='1'),
-                     InlineKeyboardButton("حذف", callback_data='2')],
-                    [InlineKeyboardButton("خانه", callback_data='0')]]
+        keyboard = super_keyboard
     else:
-        keyboard = [[InlineKeyboardButton("افزودن", callback_data='1')],
-                    [InlineKeyboardButton("خانه", callback_data='0')]]
+        keyboard = normal_keyboard
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    channels = ""
+    context.user_data['channel_reply_markup'] = InlineKeyboardMarkup(keyboard)
+    cp = context.user_data['current_channel_page'] = 1
+    channels = Channel.get_all()[(cp-1)*25:cp*25]
+    return show(update, context, channels)
+
+
+def next_channels(update, context):
+    query = update.callback_query
+    if context.user_data['current_channel_page'] == math.ceil(len(Channel.get_all()) / 25):
+        query.answer('صفحه بعد وجود ندارد')
+    else:
+        query.answer()
+        context.user_data['current_channel_page'] += 1
+        cp = context.user_data['current_channel_page']
+        channels = Channel.get_all()[(cp-1)*25:cp*25]
+        return show(update, context, channels)
+
+
+def prev_channels(update, context):
+    query = update.callback_query
+    if context.user_data['current_channel_page'] == 1:
+        query.answer('صفحه قبل وجود ندارد')
+    else:
+        query.answer()
+        context.user_data['current_channel_page'] -= 1
+        cp = context.user_data['current_channel_page']
+        channels = Channel.get_all()[(cp-1)*25:cp*25]
+        return show(update, context, channels)
+
+
+def show(update, context, channels):
+    current_page = context.user_data['current_channel_page']
+    pages = math.ceil(len(Channel.get_all()) / 25)
+    show_channels = ""
     i = 1
-    for channel in Channel.get_all():
-        channels += "{0}. {1} \n".format(i, channel.username)
+    for channel in channels:
+        show_channels += "{0}. {1} \n".format(i, channel.username)
         context.user_data['channels_dict'].update({i: channel})
         i += 1
-    update.message.reply_text(
-        "کانال های شما: \n" + channels, reply_markup=reply_markup)
+    text = "تعداد کانال ها: {0} | "\
+        "صفحه {1} از {2}\n"\
+        "کانال های موجود: \n".format(
+            len(Channel.get_all()), current_page, pages) + show_channels
+
+    reply_markup = context.user_data['channel_reply_markup']
+    if not update.message:
+        update = update.callback_query
+        update.edit_message_text(
+            text, reply_markup=reply_markup)
+    else:
+        update.message.reply_text(
+            text, reply_markup=reply_markup)
     return CHANNELS
 
 
 def add_channels_alert(update, context):
+    update.callback_query.answer()
     update.callback_query.message.reply_text(
         "آیدی کانال ها را نوشته و بفرستید\n"
         "بطور مثال میتوانید کانال ها را به صورت های زیر ارسال کنید:\n"
@@ -75,6 +129,7 @@ def add_channel(update, context):
 
 
 def remove_channels_alert(update, context):
+    update.callback_query.answer()
     update.callback_query.message.reply_text(
         'شماره کانال هایی که قصد حذف شان را دارید بفرستید سپس /done را ارسال کنید: ')
     return REMOVE_CHANNELS

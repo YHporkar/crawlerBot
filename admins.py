@@ -29,6 +29,7 @@ def admins(update, context):
 
 
 def add_admins_alert(update, context):
+    update.callback_query.answer()
     update.callback_query.message.reply_text(
         'نام های کاربری را بفرستید سپس /done را ارسال کنید')
     return ADD_ADMINS
@@ -53,6 +54,7 @@ def add_admins(update, context):
 
 
 def remove_admins_alert(update, context):
+    update.callback_query.answer()
     update.callback_query.message.reply_text(
         'شماره ادمین هایی که قصد حذف شان را دارید بفرستید سپس /done را ارسال کنید: ')
     return REMOVE_ADMINS

@@ -52,8 +52,11 @@ def get_album_last_index(soup):
     for link in links:
         if link.get('href').__contains__('?single'):
             album_links.append(link.get('href'))
-    last_album_index = int(
-        re.search(r'\/[0-9]+', album_links[0]).group(0).replace('/', ''))
+    try:
+        last_album_index = int(
+            re.search(r'\/[0-9]+', album_links[0]).group(0).replace('/', ''))
+    except IndexError:
+        return last_album_index
 
     return last_album_index
 
