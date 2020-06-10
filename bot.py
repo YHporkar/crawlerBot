@@ -6,10 +6,9 @@ from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, Conv
 
 from config import token
 
-from models import Admin, Base, engine, Keyword
+from models import Admin, Base, engine
 
 from process import *
-from keywords import *
 from channels import *
 from admins import *
 from login import *
@@ -22,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 SELECTING_ACTION = 0
 
-start_keyboard = [['واژه ها', 'کانال ها'], ['شروع جستجو']]
+start_keyboard = [['شروع جستجو'], ['کانال ها']]
 start_markup = ReplyKeyboardMarkup(start_keyboard, resize_keyboard=True)
 
 
@@ -78,23 +77,6 @@ def bot():
     updater = Updater(token, use_context=True)
     dp = updater.dispatcher
 
-    words_handler = ConversationHandler(
-        entry_points=[MessageHandler(Filters.regex('واژه ها'), keywords)],
-
-        states={
-            WORDS: [CallbackQueryHandler(add_keywords_alert, pattern=r'1'),
-                    CallbackQueryHandler(remove_keywords_alert, pattern=r'2')],
-            ADD_WORDS: [MessageHandler(Filters.regex(r'[ شسیبلاتنمکگضصثقفغعهخحجچپظطزرذدئو,]+'), add_keywords),
-                        CommandHandler('done', keywords)],
-            REMOVE_WORDS: [MessageHandler(Filters.regex(r'[0-9]+'), check_remove_keywords),
-                           CommandHandler('done', remove_keywords)]
-        },
-        fallbacks=[CallbackQueryHandler(end_features, pattern=r'0')],
-        map_to_parent={
-            SELECTING_ACTION: SELECTING_ACTION
-        }
-    )
-
     channels_handler = ConversationHandler(
         entry_points=[MessageHandler(Filters.regex('کانال ها'), channels)],
         states={
@@ -107,7 +89,6 @@ def bot():
                            CommandHandler('done', channels)],
             REMOVE_CHANNELS: [MessageHandler(Filters.regex(r'[0-9]+'), check_remove_channels),
                               CommandHandler('done', remove_channels)]
-            #   @\w{5,} |
         },
         fallbacks=[CallbackQueryHandler(end_features, pattern=r'0')],
         map_to_parent={
@@ -133,8 +114,10 @@ def bot():
 
     process_handler = ConversationHandler(
         entry_points=[MessageHandler(
-            Filters.regex('شروع جستجو'), start_process)],
+            Filters.regex('شروع جستجو'), query_alert)],
         states={
+            SET_QUERY: [MessageHandler(Filters.regex(
+                r'[ شسیبلاتنمکگضصثقفغعهخحجچپظطزرذدئو,]+'), start_process)],
             SET_DATE: [CallbackQueryHandler(manually_date_alert, pattern=r'4'),
                        CallbackQueryHandler(choosen_date, pattern=r'1|2|3'),
                        MessageHandler(Filters.regex(
@@ -156,10 +139,7 @@ def bot():
         states={
             SELECTING_ACTION: [process_handler,
                                channels_handler,
-                               words_handler,
                                admins_handler],
-
-            # NOTREGISTERED: [MessageHandler(Filters.all, access_denied)]
         },
         fallbacks=[
             CommandHandler('cancel', start)
@@ -174,5 +154,5 @@ def bot():
 
 if __name__ == '__main__':
     Base.metadata.create_all(engine)
-    # Admin.initialize()
+    Admin.initialize()
     bot()

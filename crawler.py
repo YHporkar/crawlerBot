@@ -2,12 +2,33 @@
 
 from bs4 import BeautifulSoup
 import requests
-import re
+from hazm import Normalizer, sent_tokenize, word_tokenize, Stemmer
 
+import re
 import datetime
 import time
 
 from models import Post
+
+
+normalizer = Normalizer()
+stemmer = Stemmer()
+
+with open('stopwords', 'r', encoding='utf-8') as file:
+    sw = file.readlines()
+sw = [x.strip() for x in sw]
+
+
+def remove_emoji(string):
+    emoji_pattern = re.compile("["
+                               u"\U0001F600-\U0001F64F"  # emoticons
+                               u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                               u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                               u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                               u"\U00002702-\U000027B0"
+                               u"\U000024C2-\U0001F251"
+                               "]+", flags=re.UNICODE)
+    return emoji_pattern.sub(r'', string)
 
 
 def float_to_int(num):
@@ -58,6 +79,9 @@ def get_album_last_index(soup):
     except IndexError:
         return last_album_index
 
+    # data_post = soup.find(
+    #     'div', {'class': 'tgme_widget_message js-widget_message'}).get('data-post')
+
     return last_album_index
 
 
@@ -103,45 +127,25 @@ def get_post_elements(soup):
 def arrange_words(words):
     arranged_words = {'and': [], 'or': []}
     for word in words:
-        if word.name.__contains__('،'):
+        if word.name.__contains__(' '):
             arranged_words['and'].extend(word.name.split('،'))
-        # elif word.__contains__('-'):
-        #     arranged_words['not'].append(word.replace('-', ''))
         else:
             arranged_words['or'].append(word.name)
     return arranged_words
 
 
-def check_match(caption, words):
-    raw_caption = re.sub(r'[!@#()_=+?\.,،»«:\-\']+', ' ', caption)
-    or_matched, and_matched = False, False
-    if words['or'] != []:
-        for or_word in words['or']:
-            if or_word in raw_caption:
-                or_matched = True
-                break
-            else:
-                or_matched = False
+def caption_normalization(caption):
+    caption = normalizer.normalize(remove_emoji(caption))
+    sent_tokenized_caption = sent_tokenize(caption)
+    word_tokenized_caption = []
+    for sentense in sent_tokenized_caption:
+        word_tokenized_caption.extend(word_tokenize(sentense))
+    main = " "
+    for w in word_tokenized_caption:
+        if not w in sw:
+            main += w + " "
 
-    if words['and'] != []:
-        for and_word in words['and']:
-            if and_word in raw_caption:
-                and_matched = True
-            else:
-                and_matched = False
-                break
-
-    # if words['not'] != []:
-    #     for not_word in words['not']:
-    #         if not not_word in raw_caption:
-    #             not_matched = True
-    #         else:
-    #             not_matched = False
-    # print(or_matched, and_matched)
-
-    if or_matched or and_matched:
-        return True
-    return False
+    return main
 
 
 def get_last_post_url(channel_username):
@@ -159,48 +163,10 @@ def get_channel_name(channel_username):
     return channel_soup.find('div', {'class': 'tgme_header_title'})
 
 
-def get_matched_posts(channel, words, end_date):
+def get_matched_posts_database(query, end_date):
     posts = []
-
-    # url-e.g: https://t.me/varzesh3/107254
-
-    root_url = 'https://t.me/' + channel.username.replace('@', '') + '/'
-    start = channel.start
-
-    soup = get_soup(root_url + str(start))
-
-    date = get_date(soup)
-
-    while date >= end_date:
-        print(root_url + str(start))
-        if is_there_post(soup):
-            elements = get_post_elements(soup)
-            print(elements)
-
-            if check_match(elements['caption'], arrange_words(words)):
-                posts.append({'url': root_url + str(start),
-                              'caption': elements['caption'], 'channel_name': channel.name, 'views': float_to_int(elements['views'])})
-                print('added')
-
-            # skip album additional urls
-            if elements['lai'] > 0:
-                start -= start - elements['lai'] + 1
-            else:
-                start -= 1
-            date = elements['date']
-        else:
-            start -= 1
-        soup = get_soup(root_url + str(start))
-        time.sleep(0.1)
-    return posts
-
-
-def get_matched_posts_database(words, end_date):
-    posts = []
-    words = arrange_words(words)
-    for post in Post.get_by_date(end_date):
-        if check_match(post.caption, words):
-            posts.append({'url': post.url, 'caption': post.caption,
-                          'channel_name': post.channel_name, 'views': float_to_int(str(post.views))})
+    for post in Post.get_by_query(query, end_date):
+        posts.append({'url': post.url, 'caption': post.caption,
+                      'channel_name': post.channel_name, 'views': float_to_int(str(post.views))})
 
     return posts

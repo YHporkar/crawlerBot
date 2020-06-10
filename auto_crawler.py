@@ -4,21 +4,21 @@ import sched
 
 from models import Channel, Post
 
-from crawler import get_last_post_url, is_there_post, get_post_elements, float_to_int, get_soup, get_date
+from crawler import get_last_post_url, is_there_post, get_post_elements, float_to_int, get_soup, get_date, caption_normalization
 
 
 s1 = sched.scheduler(time.time, time.sleep)
 
 
 def crawl_channels(channels):
+    rep = 0
     print(datetime.datetime.now().time(), ' Updating...')
     for channel in channels:
-        index = 1
+        index = 50
         print(channel.username)
         post_store = []
         post_store = Post.get_urls_by_channel(
             channel.username.replace('@', ''))
-        # print(post_store)
         root_url = 'https://t.me/' + channel.username.replace('@', '') + '/'
         start = Channel.update_start(
             channel, get_last_post_url(channel.username))
@@ -34,7 +34,7 @@ def crawl_channels(channels):
             if is_there_post(soup):
                 elements = get_post_elements(soup)
                 # store in database
-                Post(caption=elements['caption'], channel_name=channel.name, views=float_to_int(
+                Post(caption=elements['caption'], raw_caption=caption_normalization(elements['caption']), channel_name=channel.name, views=float_to_int(
                     elements['views']), url=root_url + str(i), date=get_date(soup)).add()
                 print(elements)
 
@@ -42,10 +42,13 @@ def crawl_channels(channels):
                 if elements['lai'] > 0:
                     i -= i - elements['lai']
                     index += i - elements['lai']
-            time.sleep(0.5)
+                    if rep == elements['lai']:
+                        i -= 1
+                    rep = elements['lai']
             i -= 1
+            # time.sleep(0.5)
 
-    s1.enter(3600, 1, crawl_channels, (channels,))
+    s1.enter(5400, 1, crawl_channels, (channels,))
     print(datetime.datetime.now().time(), ' Everything is up to date.')
 
 

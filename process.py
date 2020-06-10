@@ -1,13 +1,11 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.error import BadRequest
 
-
 import math
 from datetime import datetime, timedelta
 from crawler import get_matched_posts_database, get_last_post_url
 
 from bot import SELECTING_ACTION, start_markup, home
-from keywords import remove_all_keywords
 
 from persiantools.jdatetime import JalaliDate
 
@@ -15,17 +13,20 @@ from login import login_required
 
 from models import Channel, Admin
 
-SET_DATE, GET_POSTS = range(7, 9)
+SET_QUERY, SET_DATE, GET_POSTS = range(7, 10)
+
+
+@login_required
+def query_alert(update, context):
+    update.message.reply_text('متن جستجو:')
+    return SET_QUERY
 
 
 @login_required
 def start_process(update, context):
     context.user_data['me'] = Admin.get_by_username(
         update.message.from_user.username)
-    if Admin.get_keywords(Admin.get_by_username(update.message.from_user.username).username) == []:
-        update.message.reply_text(
-            'شما ابتدا باید برای جستجو کلید واژه ای تعیین کنید')
-        return SELECTING_ACTION
+    context.user_data['keywords'] = update.effective_message.text
     if Channel.get_all() == []:
         update.message.reply_text(
             'شما ابتدا باید برای جستجو کانالی تعیین کنید')
@@ -92,16 +93,12 @@ def choosen_date(update, context):
 
 def get_posts(update, context, date):
     context.user_data['all_posts'] = []
-    # Channel.update_start(channel, get_last_post_url(channel.username))
 
-    for post in get_matched_posts_database(Admin.get_keywords(context.user_data['me'].username), date):
+    for post in get_matched_posts_database(context.user_data['keywords'], date):
         context.user_data['all_posts'].append(post)
     context.user_data['posts_count'] = len(context.user_data['all_posts'])
-    remove_all_keywords()
+    context.user_data['keywords'] = []
     return next_posts(update, context)
-    # context.user_data['count'] = len(all_posts)
-    # update.message.reply_text('{} posts found'.format(
-    #     len(context.user_data['all_posts'])))
 
 
 def next_posts(update, context):
