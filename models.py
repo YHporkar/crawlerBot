@@ -72,6 +72,10 @@ class Channel(Base):
         session.commit()
 
 
+post_format = {'audio': 'فایل صوتی', 'document': 'سند', 'animation': 'گیف', 'game': 'بازی', 'poll': 'نظرسنجی',
+               'photo': 'تصویر', 'sticker': 'استیکر', 'video': 'کلیپ', 'voice': 'صوت', 'text': 'متن', 'album': 'آلبوم'}
+
+
 class Post(Base):
     __tablename__ = 'post'
     __searchable__ = ['raw_caption']
@@ -80,11 +84,14 @@ class Post(Base):
     caption = Column(Text)
     raw_caption = Column(Text)
     url = Column(String(50), nullable=False, unique=True)
+    format = Column(String(20), nullable=False)
     views = Column(Integer, nullable=False)
     channel_name = Column(String(50), nullable=False)
+    duration = Column(String(10), default='0')
     date = Column(Date, nullable=False)
 
     def get_by_query(query, date):
+        print(Post.search_query(query))
         return Post.search_query(query).filter(Post.date >= date).all()
 
     def get_old_posts(date):

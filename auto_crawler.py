@@ -4,7 +4,7 @@ import sched
 
 from models import Channel, Post
 
-from crawler import get_last_post_url, is_there_post, get_post_elements, float_to_int, get_soup, get_date, caption_normalization
+from crawler import *
 
 
 s1 = sched.scheduler(time.time, time.sleep)
@@ -32,21 +32,22 @@ def crawl_channels(channels):
                 continue
             soup = get_soup(root_url + str(i))
             if is_there_post(soup):
-                elements = get_post_elements(soup)
                 # store in database
-                Post(caption=elements['caption'], raw_caption=caption_normalization(elements['caption']), channel_name=channel.name, views=float_to_int(
-                    elements['views']), url=root_url + str(i), date=get_date(soup)).add()
-                print(elements)
+                Post(caption=get_caption(soup), raw_caption=caption_normalization(get_caption(soup)),
+                     channel_name=channel.name, views=float_to_int(get_views(soup)), url=root_url + str(i),
+                     date=get_date(soup), format=get_format(soup), duration=get_duration(soup)).add()
+                print('added')
 
                 # skip album posts
-                if elements['lai'] > 0:
-                    i -= i - elements['lai']
-                    index += i - elements['lai']
-                    if rep == elements['lai']:
+                if is_grouped(soup):
+                    lai = get_album_last_index(soup)
+                    i -= i - lai
+                    index += i - lai
+                    if rep == lai:
                         i -= 1
-                    rep = elements['lai']
+                    rep = lai
             i -= 1
-            # time.sleep(0.5)
+            time.sleep(0.3)
 
     s1.enter(5400, 1, crawl_channels, (channels,))
     print(datetime.datetime.now().time(), ' Everything is up to date.')

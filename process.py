@@ -1,7 +1,11 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.error import BadRequest
 
+from openpyxl import Workbook
+
+
 import math
+import os
 from datetime import datetime, timedelta
 from crawler import get_matched_posts_database, get_last_post_url
 
@@ -11,7 +15,7 @@ from persiantools.jdatetime import JalaliDate
 
 from login import login_required
 
-from models import Channel, Admin
+from models import Channel, Admin, post_format
 
 SET_QUERY, SET_DATE, GET_POSTS = range(7, 10)
 
@@ -33,59 +37,58 @@ def start_process(update, context):
         return SELECTING_ACTION
 
     keyboard = [[InlineKeyboardButton("امروز", callback_data='1'),
-                 InlineKeyboardButton("دیروز", callback_data='2')],
-
-                [InlineKeyboardButton(
-                    "2 روز پیش", callback_data='3')],
-                [InlineKeyboardButton("ورود دستی تاریخ", callback_data='4')],
+                 InlineKeyboardButton("یک هفته اخیر", callback_data='2')],
+                [InlineKeyboardButton("یک ماه اخیر", callback_data='3')],
+                [InlineKeyboardButton("سه ماه اخیر", callback_data='4')],
                 [InlineKeyboardButton("بازگشت به خانه", callback_data='0')]
                 ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     update.message.reply_text(
-        'از هم اکنون تا چه زمانی جستجو انجام شود؟', reply_markup=reply_markup)
+        'بازه‌ی جستجو را مشخص کنید', reply_markup=reply_markup)
 
     return SET_DATE
 
 
-def manually_date_alert(update, context):
-    update.callback_query.answer()
-    update.callback_query.edit_message_text(
-        " تاریخ را با فرمت زیر ارسال کنید \n\n"
-        "روز-ماه-سال\n"
-        "مثال: 05-02-1399")
-    return SET_DATE
+# def manually_date_alert(update, context):
+#     update.callback_query.answer()
+#     update.callback_query.edit_message_text(
+#         " تاریخ را با فرمت زیر ارسال کنید \n\n"
+#         "روز-ماه-سال\n"
+#         "مثال: 05-02-1399")
+#     return SET_DATE
 
 
-def manually_date(update, context):
-    persian_date = list(map(int, update.effective_message.text.split('-')))
-    try:
-        date = JalaliDate(persian_date[0], persian_date[1],
-                          persian_date[2]).to_gregorian()
-    except ValueError:
-        update.message.reply_text('تاریخ را درست وارد کنید')
-        return SET_DATE
-    update.message.reply_text('لطفا صبر کنید...')
+# def manually_date(update, context):
+#     persian_date = list(map(int, update.effective_message.text.split('-')))
+#     try:
+#         date = JalaliDate(persian_date[0], persian_date[1],
+#                           persian_date[2]).to_gregorian()
+#     except ValueError:
+#         update.message.reply_text('تاریخ را درست وارد کنید')
+#         return SET_DATE
+#     update.message.reply_text('لطفا صبر کنید...')
 
-    return get_posts(update, context, date)
-
-
-def wrong_date(update, context):
-    update.message.reply_text('تاریخ را درست وارد کنید')
-    return SET_DATE
+#     return get_posts(update, context, date)
 
 
-def choosen_date(update, context):
+# def wrong_date(update, context):
+#     update.message.reply_text('تاریخ را درست وارد کنید')
+#     return SET_DATE
+
+
+def choose_date(update, context):
     update.callback_query.answer()
     data = update.callback_query.data
-    date = ''
     if data == '1':
         date = datetime.today().date()
     elif data == '2':
-        date = (datetime.today() - timedelta(days=1)).date()
+        date = (datetime.today() - timedelta(days=7)).date()
     elif data == '3':
-        date = (datetime.today() - timedelta(days=2)).date()
+        date = (datetime.today() - timedelta(days=30)).date()
+    elif data == '4':
+        date = (datetime.today() - timedelta(days=90)).date()
     update.callback_query.edit_message_text('لطفا صبر کنید...')
 
     return get_posts(update.callback_query, context, date)
@@ -97,13 +100,20 @@ def get_posts(update, context, date):
     for post in get_matched_posts_database(context.user_data['keywords'], date):
         context.user_data['all_posts'].append(post)
     context.user_data['posts_count'] = len(context.user_data['all_posts'])
+    make_excel_file(posts=context.user_data['all_posts'],
+                    username=update.message.chat.username)
     context.user_data['keywords'] = []
     return next_posts(update, context)
 
 
 def next_posts(update, context):
-    keyboard = [[InlineKeyboardButton(
-        "ریست و بازگشت به خانه", callback_data='5'), InlineKeyboardButton("صفحه بعد", callback_data='1')]]
+    keyboard = [[InlineKeyboardButton("ریست و بازگشت به خانه", callback_data='5'),
+                 InlineKeyboardButton("صفحه بعد", callback_data='1')],
+                InlineKeyboardButton("دریافت فایل اکسل", callback_data='6')]
+    last_keyboard = [
+        [InlineKeyboardButton("ریست و بازگشت به خانه", callback_data='5')],
+        [InlineKeyboardButton("دریافت فایل اکسل", callback_data='6')]
+    ]
     if not update.message:
         update = update.callback_query
 
@@ -116,8 +126,9 @@ def next_posts(update, context):
         return home(update, context)
     elif count <= 5:
         show_count = count
-        show_posts(show_count, start_markup, pages, count, update, context)
-        return home(update, context)
+        show_posts(show_count, InlineKeyboardMarkup(
+            last_keyboard), pages, count, update, context)
+        return GET_POSTS
     elif count > 5:
         show_posts(5, InlineKeyboardMarkup(keyboard),
                    pages, count, update, context)
@@ -154,3 +165,64 @@ def prettify(post):
         "💬 کپشن: \n {3} \n\n".format(
             post['channel_name'], post['url'], post['views'], post['caption'])
     return prettier
+
+
+def make_excel_file(posts, username):
+    wb = Workbook()
+    ws = wb.active
+    ws.sheet_view.rightToLeft = True
+    i = 2
+
+    ws.cell(1, 1).value = 'شماره تولید'
+    ws.cell(1, 2).value = 'نام برنامه'
+    ws.cell(1, 3).value = 'عنوان'
+    ws.cell(1, 4).value = 'نوع'
+    ws.cell(1, 5).value = 'مدت(ثانیه)'
+    ws.cell(1, 6).value = 'نام کانال/صفحه'
+    ws.cell(1, 7).value = 'لینک 24 ساعته'
+    ws.cell(1, 8).value = 'تعداد بازدید'
+    ws.cell(1, 9).value = 'زمان انتشار'
+
+    for post in posts:
+        ws.cell(i, 3).value = post['caption']
+
+        ws.cell(i, 4).value = post_format[post['format']]
+
+        ws.cell(i, 5).value = post['duration']
+
+        ws.cell(i, 6).value = post['channel_name']
+
+        ws.cell(i, 7).value = post['url']
+        ws.cell(i, 7).hyperlink = post['url']
+
+        if post['views'] == 0:
+            ws.cell(i, 8).value = 'تعداد ویوها مشخص نشد'
+        else:
+            ws.cell(i, 8).value = post['views']
+        ws.cell(i, 8).number_format = '0'
+
+        ws.cell(i, 9).value = post['datetime']
+
+        i += 1
+
+    filename = '{}_posts.xlsx'.format(username)
+    wb.save(filename=filename)
+
+    return filename
+
+
+def send_excel(update, context):
+    print('fetch')
+    update = update.callback_query
+    update.answer()
+    temp = update.message.reply_text('در حال بارگذاری ...')
+    update.message.reply_document(document=open(
+        '{}_posts.xlsx'.format(update.message.chat.username), 'rb'))
+    update.message.bot.delete_message(
+        chat_id=update.message.chat_id, message_id=temp.message_id)
+
+    os.remove('{}_posts.xlsx'.format(update.message.chat.username))
+
+    update.message.reply_text(
+        'لطفا انتخاب کنید', reply_markup=start_markup)
+    return SELECTING_ACTION

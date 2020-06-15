@@ -118,13 +118,15 @@ def bot():
         states={
             SET_QUERY: [MessageHandler(Filters.regex(
                 r'[ شسیبلاتنمکگضصثقفغعهخحجچپظطزرذدئو,]+'), start_process)],
-            SET_DATE: [CallbackQueryHandler(manually_date_alert, pattern=r'4'),
-                       CallbackQueryHandler(choosen_date, pattern=r'1|2|3'),
-                       MessageHandler(Filters.regex(
-                           r'[0-9]{4}-[0-9]{2}-[0-9]{2}'), manually_date),
-                       MessageHandler(~ Filters.regex(r'[0-9]{4}-[0-9]{2}-[0-9]{2}'), wrong_date)],
+            SET_DATE: [CallbackQueryHandler(choose_date, pattern=r'1|2|3|4')
+                       # CallbackQueryHandler(manually_date_alert, pattern=r'4'),
+                       #    MessageHandler(Filters.regex(
+                       #        r'[0-9]{4}-[0-9]{2}-[0-9]{2}'), manually_date),
+                       #    MessageHandler(~ Filters.regex(r'[0-9]{4}-[0-9]{2}-[0-9]{2}'), wrong_date)
+                       ],
 
-            GET_POSTS: [CallbackQueryHandler(next_posts, pattern=r'1')]
+            GET_POSTS: [CallbackQueryHandler(next_posts, pattern=r'1'),
+                        CallbackQueryHandler(send_excel, pattern=r'6')]
         },
         fallbacks=[CallbackQueryHandler(end_features, pattern=r'0'),
                    CallbackQueryHandler(home, pattern=r'5')],
@@ -154,5 +156,5 @@ def bot():
 
 if __name__ == '__main__':
     Base.metadata.create_all(engine)
-    Admin.initialize()
+    # Admin.initialize()
     bot()
