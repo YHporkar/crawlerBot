@@ -72,7 +72,7 @@ class Channel(Base):
         session.commit()
 
 
-post_format = {'audio': 'فایل صوتی', 'document': 'سند', 'animation': 'گیف', 'game': 'بازی', 'poll': 'نظرسنجی',
+post_format = {'audio': 'فایل صوتی', 'document': 'سند', 'animation': 'گیف', 'game': 'بازی', 'poll': 'نظرسنجی', 'text_link': 'متن حاوی لینک',
                'photo': 'تصویر', 'sticker': 'استیکر', 'video': 'کلیپ', 'voice': 'صوت', 'text': 'متن', 'album': 'آلبوم'}
 
 

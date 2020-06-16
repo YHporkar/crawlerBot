@@ -140,6 +140,8 @@ def get_format(soup):
         return 'audio'
     elif link_class.__contains__('media'):
         return 'sticker'
+    elif link_class.__contains__('link_preview'):
+        return 'text_link'
 
 # photo 2 -3 has reply
 # print(get_format(get_soup('https://t.me/varzesh3/108997')))
@@ -154,6 +156,8 @@ def get_format(soup):
 # print(get_format(get_soup('https://t.me/kanunbvb/29545')))
 # text 0 -3 tgme_widget_message_owner_name
 
+
+# print(get_format(get_soup('https://t.me/ahmadmoosavi_ir/464')))
 
 # print(get_format(get_soup('https://t.me/farsna/195364')))  # album
 
