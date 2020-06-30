@@ -126,8 +126,8 @@ def get_format(soup):
         return 'photo'
     elif link_class.__contains__('voice'):
         return 'voice'
-    elif link_class.__contains__('owner'):
-        return 'text'
+    # elif link_class.__contains__('owner'):
+    #     return 'text'
     elif link_class.__contains__('poll'):
         return 'poll'
     elif link_class.__contains__('video'):
@@ -142,6 +142,8 @@ def get_format(soup):
         return 'sticker'
     elif link_class.__contains__('link_preview'):
         return 'text_link'
+    else:
+        return 'text'
 
 # photo 2 -3 has reply
 # print(get_format(get_soup('https://t.me/varzesh3/108997')))
@@ -158,6 +160,7 @@ def get_format(soup):
 
 
 # print(get_format(get_soup('https://t.me/ahmadmoosavi_ir/464')))
+# print(get_format(get_soup('https://t.me/ahmadmoosavi_ir/428')))
 
 # print(get_format(get_soup('https://t.me/farsna/195364')))  # album
 
@@ -206,6 +209,17 @@ def caption_normalization(caption):
     return main
 
 
+def query_normalization(query):
+    query = normalizer.normalize(remove_emoji(query))
+    word_tokenized_query = word_tokenize(query)
+    main = " "
+    for w in word_tokenized_query:
+        if not w in sw:
+            main += w + " "
+
+    return main
+
+
 def get_last_post_url(channel_username):
     channel_soup = get_soup(
         'https://t.me/s/' + channel_username.replace('@', '') + '/')
@@ -223,7 +237,7 @@ def get_channel_name(channel_username):
 
 def get_matched_posts_database(query, end_date):
     posts = []
-    for post in Post.get_by_query(query, end_date):
+    for post in Post.get_by_query(query_normalization(query), end_date):
         posts.append({'url': post.url, 'caption': post.caption,
                       'channel_name': post.channel_name, 'views': float_to_int(str(post.views)), 'format': post.format,
                       'duration': post.duration, 'datetime': post.date})

@@ -20,17 +20,17 @@ from models import Channel, Admin, post_format
 SET_QUERY, SET_DATE, GET_POSTS = range(7, 10)
 
 
-@login_required
+# @login_required
 def query_alert(update, context):
     update.message.reply_text('متن جستجو:')
     return SET_QUERY
 
 
-@login_required
+# @login_required
 def start_process(update, context):
     context.user_data['me'] = Admin.get_by_username(
         update.message.from_user.username)
-    context.user_data['keywords'] = update.effective_message.text
+    context.user_data['query'] = update.effective_message.text
     if Channel.get_all() == []:
         update.message.reply_text(
             'شما ابتدا باید برای جستجو کانالی تعیین کنید')
@@ -97,19 +97,18 @@ def choose_date(update, context):
 def get_posts(update, context, date):
     context.user_data['all_posts'] = []
 
-    for post in get_matched_posts_database(context.user_data['keywords'], date):
+    for post in get_matched_posts_database(context.user_data['query'], date):
         context.user_data['all_posts'].append(post)
     context.user_data['posts_count'] = len(context.user_data['all_posts'])
     make_excel_file(posts=context.user_data['all_posts'],
-                    username=update.message.chat.username)
-    context.user_data['keywords'] = []
+                    query=context.user_data['query'])
     return next_posts(update, context)
 
 
 def next_posts(update, context):
-    keyboard = [[InlineKeyboardButton("ریست و بازگشت به خانه", callback_data='5'),
-                 InlineKeyboardButton("صفحه بعد", callback_data='1')],
-                InlineKeyboardButton("دریافت فایل اکسل", callback_data='6')]
+    keyboard = [[InlineKeyboardButton("ریست و بازگشت به خانه", callback_data='5')],
+                [InlineKeyboardButton("صفحه بعد", callback_data='1')],
+                [InlineKeyboardButton("دریافت فایل اکسل", callback_data='6')]]
     last_keyboard = [
         [InlineKeyboardButton("ریست و بازگشت به خانه", callback_data='5')],
         [InlineKeyboardButton("دریافت فایل اکسل", callback_data='6')]
@@ -167,7 +166,7 @@ def prettify(post):
     return prettier
 
 
-def make_excel_file(posts, username):
+def make_excel_file(posts, query):
     wb = Workbook()
     ws = wb.active
     ws.sheet_view.rightToLeft = True
@@ -205,7 +204,7 @@ def make_excel_file(posts, username):
 
         i += 1
 
-    filename = '{}_posts.xlsx'.format(username)
+    filename = '{}.xlsx'.format(query)
     wb.save(filename=filename)
 
     return filename
@@ -217,12 +216,8 @@ def send_excel(update, context):
     update.answer()
     temp = update.message.reply_text('در حال بارگذاری ...')
     update.message.reply_document(document=open(
-        '{}_posts.xlsx'.format(update.message.chat.username), 'rb'))
+        '{}.xlsx'.format(context.user_data['query']), 'rb'))
     update.message.bot.delete_message(
         chat_id=update.message.chat_id, message_id=temp.message_id)
 
-    os.remove('{}_posts.xlsx'.format(update.message.chat.username))
-
-    update.message.reply_text(
-        'لطفا انتخاب کنید', reply_markup=start_markup)
-    return SELECTING_ACTION
+    return home(update, context)

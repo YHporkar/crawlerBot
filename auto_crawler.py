@@ -20,8 +20,9 @@ def crawl_channels(channels):
         post_store = Post.get_urls_by_channel(
             channel.username.replace('@', ''))
         root_url = 'https://t.me/' + channel.username.replace('@', '') + '/'
-        start = Channel.update_start(
-            channel, get_last_post_url(channel.username))
+        # start = Channel.update_start(
+        #     channel, get_last_post_url(channel.username))
+        start = 875
         i = start
         while(i >= start - index and i != 0):
             print(root_url + str(i))
@@ -29,6 +30,7 @@ def crawl_channels(channels):
             if root_url + str(i) in post_store:
                 print('duplicate')
                 i -= 1
+                # break
                 continue
             soup = get_soup(root_url + str(i))
             if is_there_post(soup):
@@ -41,7 +43,9 @@ def crawl_channels(channels):
                 # skip album posts
                 if is_grouped(soup):
                     lai = get_album_last_index(soup)
+                    print(lai)
                     i -= i - lai
+                    print(i)
                     index += i - lai
                     if rep == lai:
                         i -= 1
@@ -49,7 +53,7 @@ def crawl_channels(channels):
             i -= 1
             time.sleep(0.3)
 
-    s1.enter(5400, 1, crawl_channels, (channels,))
+    s1.enter(6000, 1, crawl_channels, (channels,))
     print(datetime.datetime.now().time(), ' Everything is up to date.')
 
 

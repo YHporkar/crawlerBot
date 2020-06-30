@@ -13,6 +13,8 @@ from channels import *
 from admins import *
 from login import *
 
+import os
+
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -61,6 +63,8 @@ def home(update, context):
         update.message.reply_text(
             'لطفا انتخاب کنید', reply_markup=start_markup)
     context.user_data['all_posts'] = []
+    os.remove('{}.xlsx'.format(context.user_data['query']))
+    context.user_data['query'] = ''
 
     return SELECTING_ACTION
 

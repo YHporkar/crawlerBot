@@ -23,7 +23,7 @@ normal_keyboard = [[InlineKeyboardButton("صفحه قبل", callback_data='3'),
                    [InlineKeyboardButton("خانه", callback_data='0')]]
 
 
-@login_required
+# @login_required
 def channels(update, context):
     context.user_data['channels_dict'] = {}
     context.user_data['remove_channels'] = []
