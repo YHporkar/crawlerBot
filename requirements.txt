@@ -23,7 +23,7 @@ pycodestyle==2.6.0
 pycparser==2.20
 PyMySQL==0.9.3
 python-telegram-bot==12.7
-PyYAML==5.3.1
+PyYAML==5.4
 requests==2.23.0
 six==1.15.0
 smmap==3.0.4
